@@ -1,111 +1,89 @@
 /* ==================================== */
-/* 03_components.css - VERSIÓN HACKER CON CARRUSEL */
+/* 03_components.css - ESTILO MODERNO Y MINIMALISTA */
 /* ==================================== */
 
-/* 1. Base y Contenedor */
+/* 1. Base del Cuerpo: Fondo limpio */
 body {
-    background-color: #000000;
-    color: #00ff41; 
-    font-family: 'Consolas', 'Courier New', monospace;
+    background-color: #f0f2f5; /* Gris claro suave, común en apps modernas */
+    color: #333333; /* Texto principal gris oscuro */
+    font-family: 'Arial', 'Helvetica Neue', sans-serif;
+    margin: 0;
+    padding: 0;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
 }
 
+/* 2. Contenedor de Login: Tarjeta limpia y elevada */
 #login-container {
-    background: transparent;
-    border: 2px solid #00ff41;
-    box-shadow: 0 0 15px rgba(0, 255, 65, 0.7);
-    padding: 30px;
+    background: #ffffff; /* Fondo blanco */
+    border: none;
+    border-radius: 12px; /* Esquinas suaves */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Sombra sutil para efecto de elevación */
+    padding: 40px;
     width: 100%;
-    max-width: 400px; /* Tamaño ligeramente más grande para el texto */
-    animation: flicker 1s infinite alternate; 
-    transition: all 0.5s;
+    max-width: 360px; /* Tamaño ideal para un formulario */
+    transition: transform 0.3s ease-in-out;
 }
 
-@keyframes flicker {
-    0% { opacity: 1; }
-    100% { opacity: 0.99; }
+/* Efecto hover/activo sutil */
+#login-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
 }
 
-/* 2. Cabecera y Título del Login */
+/* 3. Título */
 #login-container h2 {
-    color: #00ff41;
+    color: #1a1a1a;
     text-align: center;
-    margin-top: 20px; /* Espacio después de la leyenda */
     margin-bottom: 30px;
-    font-size: 1.8em;
-    text-shadow: 0 0 8px #00ff41;
-    text-transform: uppercase;
+    font-size: 1.6em;
+    font-weight: 600; /* Seminegrita */
 }
 
-/* 3. Estilos de los Inputs */
+/* 4. Inputs: Diseño limpio y enfocado */
+#login-form {
+    display: flex;
+    flex-direction: column;
+}
+
 #login-form input[type="text"],
 #login-form input[type="password"] {
     width: 100%;
-    padding: 12px;
+    padding: 14px 15px;
     margin-bottom: 20px;
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid #00ff41; 
-    color: #00ff41;
-    font-size: 1.1em;
+    background: #ffffff;
+    border: 1px solid #cccccc; /* Borde gris claro */
+    border-radius: 6px; /* Esquinas suaves */
+    color: #333333;
+    font-size: 1.05em;
     outline: none;
-    box-shadow: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    font-family: 'Consolas', monospace;
-    -webkit-appearance: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    font-family: inherit;
+    box-sizing: border-box; /* Crucial para el padding */
 }
 
+/* Foco en el input: color de acento azul o verde */
 #login-form input:focus {
-    border-bottom-color: #33ff77;
-    box-shadow: 0 1px 5px #00ff41;
+    border-color: #007bff; /* Azul de acento moderno */
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
 }
 
 #login-form input::placeholder {
-    color: #008822;
-    opacity: 0.7;
+    color: #999999;
+    opacity: 1;
 }
 
+/* 5. Texto de Instrucción (Opcional si lo dejas) */
 #login-container p {
-    color: #00cc33;
+    color: #6c757d; /* Gris tenue para instrucciones */
     text-align: center;
-    margin-top: 25px;
+    margin-top: 15px;
     font-size: 0.9em;
 }
 
-
-/* ==================================== */
-/* 4. EFECTO CARRUSEL TIPO LEYENDA */
-/* ==================================== */
-
+/* 6. Deshabilitar el carrusel de texto del modo hacker */
 .hacker-intro {
-    font-size: 1.2em;
-    text-align: left;
-    height: 30px; /* Altura fija para el texto */
-    overflow: hidden; /* Oculta el texto que se está escribiendo */
-    border-right: 3px solid #00ff41; /* Simula el cursor parpadeante */
-    white-space: nowrap; /* Mantiene el texto en una sola línea */
-    width: 0; /* Ancho inicial 0 */
-    animation: typing 6s steps(40) forwards, 
-               blink-cursor 0.75s step-end infinite;
-}
-
-.typewriter {
-    /* Color de texto para el carrusel (puedes ajustarlo) */
-    color: #ff00ff; /* Magenta/Púrpura Neón para la leyenda */
-    text-shadow: 0 0 5px #ff00ff;
-}
-
-/* 4.1. Animación de Escritura (typing) */
-@keyframes typing {
-    from { width: 0; }
-    to { width: 100%; } /* El ancho crece para revelar el texto */
-}
-
-/* 4.2. Animación del Cursor (blink-cursor) */
-@keyframes blink-cursor {
-    from, to { border-color: transparent }
-    50% { border-color: #00ff41; }
+    display: none; 
 }
