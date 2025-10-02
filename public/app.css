@@ -1,0 +1,207 @@
+/* app.css - Estilos Centralizados y Responsivos */
+
+/* --- BASE Y TEMA AUTOMÁTICO --- */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background 0.5s, color 0.5s;
+}
+
+body.light { 
+    background: linear-gradient(135deg, #4e54c8, #8f94fb); 
+    color: #333; 
+}
+body.dark { 
+    background: #121212; 
+    color: #eee; 
+}
+
+#app-container {
+    display: flex;
+    flex-direction: column;
+    width: 95%;
+    max-width: 1200px;
+    height: 95%;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    transition: background 0.5s;
+}
+
+/* Estilo para las secciones (el contenido de chat/perfil) */
+.seccion {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    transition: background 0.5s;
+    overflow-y: auto;
+}
+body.light .seccion { background: rgba(255, 255, 255, 0.95); }
+body.dark .seccion { background: #1e1e1e; }
+
+
+/* --- MENÚ DE BOTONES (Navegación) --- */
+#menu {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+    transition: background 0.5s;
+}
+body.light #menu { background: #fff; }
+body.dark #menu { background: #2a2a2a; }
+
+#menu button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    color: #fff;
+    background: linear-gradient(135deg,#f093fb,#f5576c); /* Color base */
+    transition: transform 0.3s, opacity 0.3s, box-shadow 0.3s;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#menu button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+/* Colores de ejemplo para botones (puedes personalizarlos) */
+#btn-global { background: linear-gradient(135deg,#007bff,#00bfff); }
+#btn-privado { background: linear-gradient(135deg,#ff7e5f,#feb47b); }
+#btn-perfil { background: linear-gradient(135deg,#43cea2,#185a9d); }
+#btn-subir { background: linear-gradient(135deg,#ee0979,#ff6a00); }
+
+
+/* --- SECCIONES CHAT --- */
+.chat-seccion {
+    padding: 0; /* Quitamos padding aquí para moverlo a mensajes-box */
+}
+
+.chat-seccion header {
+    padding: 10px 20px;
+    border-bottom: 1px solid #ccc;
+}
+body.dark .chat-seccion header { border-color: #444; }
+
+.mensajes-box {
+    flex: 1;
+    padding: 15px 20px;
+    overflow-y: auto;
+}
+
+/* Mensajes */
+.mensaje {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    max-width: 90%;
+    animation: messageFade 0.5s ease-in-out;
+}
+body.light .mensaje.global { background: #e0e0e0; }
+body.dark .mensaje.global { background: #333; }
+
+.mensaje.privado {
+    background: #5a2e9b;
+    color: white;
+}
+.msg-photo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 10px; }
+.msg-content { max-width: calc(100% - 50px); }
+.msg-header { font-weight: bold; margin-bottom: 3px; font-size: 0.9em; }
+.msg-header .rango { color: #8f94fb; margin-right: 5px; }
+
+@keyframes messageFade {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+
+/* Lista de usuarios para chat privado */
+#user-list-private {
+    padding: 10px 20px;
+    background: rgba(143, 148, 251, 0.1);
+}
+#user-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+#user-list li { 
+    display: flex; 
+    align-items: center; 
+    padding: 5px 10px; 
+    border-radius: 20px;
+    cursor: pointer; 
+    transition: background 0.3s;
+    font-size: 0.9em;
+}
+#user-list li:hover { background: rgba(143, 148, 251, 0.3); }
+
+
+/* --- SECCIÓN PERFIL --- */
+.perfil-seccion {
+    text-align: center;
+}
+.perfil-seccion img {
+    border: 5px solid #8f94fb;
+    transition: transform 0.3s;
+}
+.perfil-seccion input[type="text"] {
+    width: 200px;
+    padding: 8px;
+    margin-top: 5px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+.perfil-seccion button, .perfil-seccion a {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    background: #4e54c8;
+    color: white;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: background 0.3s;
+    display: inline-block;
+}
+
+/* --- FOOTER DE CHAT (INPUTS) --- */
+#chat-footer {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+    transition: background 0.5s;
+}
+body.light #chat-footer { background: #fff; }
+body.dark #chat-footer { background: #2a2a2a; border-color: #444; }
+
+#mensajeInput {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    margin-right: 10px;
+}
+body.dark #mensajeInput { background: #444; color: white; border-color: #555; }
+
+
+/* --- RESPONSIVO --- */
+@media screen and (max-width: 768px){
+    #menu { flex-direction: column; gap: 5px; }
+    #menu button { width: 95%; }
+    
+    #app-container { height: 98%; width: 98%; }
+    
+    .mensajes-box { padding: 10px; }
+    .mensaje { max-width: 100%; }
+    
+    #chat-footer { padding: 8px; }
+    #enviarBtn { padding: 8px 12px; }
+}
