@@ -3,24 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <title>Chat Global y Privado</title>
-    </head>
+    <link rel="stylesheet" href="chat.css">
+</head>
 <body>
     <div id="container">
         <div id="sidebar">
-            <a href="perfil.html">Mi Perfil</a>
+            <a href="perfil.html" id="perfil-link">Mi Perfil</a>
             <h4>Usuarios Conectados:</h4>
-            <ul id="user-list"></ul>
+            <ul id="user-list">
+                </ul>
         </div>
         
         <div id="main-chat">
             <header>
                 <h3 id="chat-title">Chat Global</h3>
-                <span id="target-user" style="color:yellow; font-weight:bold;"></span>
+                <span id="target-user-info" style="color:yellow; font-weight:bold;"></span>
             </header>
             
-            <div id="mensajes"></div>
+            <div id="mensajes">
+                </div>
 
             <footer>
+                <input type="file" id="archivoInput" style="display:none;" accept="image/*,video/*">
+                <button id="subirMediaBtn" onclick="document.getElementById('archivoInput').click()">📷/📹</button>
+
                 <input type="text" id="mensajeInput" placeholder="Escribe un mensaje o @usuario mensaje...">
                 <button id="enviarBtn">Enviar</button>
             </footer>
@@ -28,85 +34,6 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-        const user = JSON.parse(localStorage.getItem("userProfile"));
-        if (!user) window.location.href = "login.html";
-
-        const mensajesDiv = document.getElementById("mensajes");
-        const mensajeInput = document.getElementById("mensajeInput");
-        const enviarBtn = document.getElementById("enviarBtn");
-        const userList = document.getElementById("user-list");
-        const chatTitle = document.getElementById("chat-title");
-        const targetUserSpan = document.getElementById("target-user");
-
-        let targetUser = null; // Usuario actual para chat privado
-
-        // 1. Conexión y Notificación de Join
-        socket.on("connect", () => {
-            socket.emit("join", user);
-        });
-
-        // 2. Renderizar Mensajes
-        function appendMessage(data, isPrivate = false) {
-            const msgClass = isPrivate ? 'privado' : 'global';
-            const remitente = isPrivate && data.isSender ? 'Tú (Privado)' : data.nombre;
-            const style = isPrivate ? 'background:#5522aa; color:white;' : '';
-
-            mensajesDiv.innerHTML += `
-                <div class="mensaje ${msgClass}" style="${style}">
-                    <b>[${data.rango || user.rango}] ${remitente}:</b> ${data.texto}
-                </div>
-            `;
-            mensajesDiv.scrollTop = mensajesDiv.scrollHeight;
-        }
-
-        // 3. Lógica de Envío
-        function enviarMensaje() {
-            const texto = mensajeInput.value.trim();
-            if (!texto) return;
-
-            // Chat privado: @usuario mensaje
-            const match = texto.match(/^@(\w+)\s+(.*)/);
-            if (match) {
-                const destino = match[1];
-                const mensaje = match[2];
-                socket.emit("mensajePrivado", { id: user.id, destino: destino.toLowerCase(), texto: mensaje });
-                mensajeInput.value = '';
-                return;
-            }
-
-            // Chat Global
-            socket.emit("mensajeGlobal", { id: user.id, texto });
-            mensajeInput.value = '';
-        }
-
-        // 4. Recepción de Eventos
-        socket.on("mensajeGlobal", data => appendMessage(data, false));
-        socket.on("mensajePrivado", data => appendMessage(data, true));
-        socket.on("server_message", data => appendMessage({ texto: data.texto, rango: 'System' }, false));
-
-        socket.on("update_users", (users) => {
-            userList.innerHTML = '';
-            users.forEach(u => {
-                const li = document.createElement('li');
-                li.textContent = `${u.nombre} [${u.rango}]`;
-                li.style.cursor = 'pointer';
-                li.onclick = () => {
-                    targetUser = u.usuario;
-                    targetUserSpan.textContent = ` (MP a @${targetUser})`;
-                    mensajeInput.value = `@${targetUser} `;
-                    mensajeInput.focus();
-                };
-                userList.appendChild(li);
-            });
-        });
-
-        // Event Listeners
-        enviarBtn.addEventListener("click", enviarMensaje);
-        mensajeInput.addEventListener("keypress", (e) => {
-            if (e.key === 'Enter') enviarMensaje();
-        });
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
