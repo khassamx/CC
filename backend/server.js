@@ -1,4 +1,4 @@
-// /backend/server.js - Versión FINAL con Rutas de HTML en la carpeta 'public'
+// /backend/server.js - Versión FINAL y Simplificada
 
 const express = require('express');
 const http = require('http');
@@ -16,31 +16,29 @@ const app = express();
 const server = http.createServer(app);
 const PORT = 8080; 
 
-// --- Middleware ---
-// CRÍTICO: Servir archivos estáticos (scripts, styles, etc.).
-// Esto también sirve implícitamente todos los HTMLs que están en 'public/' 
-// (como chat.html y login.html) cuando se acceden directamente (ej: /public/chat.html).
+// --- Middleware CRÍTICO ---
+// Express sirve el contenido de la carpeta 'public' por defecto.
+// Esto significa que:
+//   - /login.html  =>  busca en public/login.html
+//   - /styles/...  =>  busca en public/styles/...
 app.use(express.static(path.join(__dirname, '../public'))); 
 
 
 // ************************************************
-// 2. RUTAS EXPRESS (HTMLs AHORA ESTÁN EN PUBLIC)
+// 2. RUTAS EXPRESS SIMPLIFICADAS
 // ************************************************
-// Como los archivos HTML están en la carpeta que Express ya está sirviendo 
-// como estáticos, SIMPLIFICAMOS las rutas para que Express las maneje automáticamente.
+// Ya que 'public' es la raíz estática, solo necesitamos redirigir a /login.html
+// y /chat.html. Express automáticamente encuentra el archivo en 'public/'.
 
 app.get('/', (req, res) => {
-    // Redirige a la página de login (Express la encuentra en la carpeta estática)
+    // Redirige al archivo login.html que está en la raíz estática
     res.redirect('/login.html'); 
 });
 
-// Nota: Ya NO necesitamos app.get('/login.html', ...) ni app.get('/chat.html', ...) 
-// porque Express los sirve automáticamente desde la carpeta estática.
-// Si accedes a http://localhost:8080/login.html, Express busca el archivo en la raíz estática ('public/').
-
-// SIN EMBARGO, si quieres proteger o asegurar la ruta, lo dejamos así:
+// Nota: Las rutas app.get('/login.html', ...) y app.get('/chat.html', ...)
+// ya NO son estrictamente necesarias, pero si las tenías por seguridad o lógica:
+/*
 app.get('/login.html', (req, res) => {
-    // __dirname (backend) + '..' (sube a CC) + 'public' (entra a public) + 'login.html'
     res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
 });
 
@@ -48,14 +46,7 @@ app.get('/chat.html', (req, res) => {
     // La redirección del login lleva aquí
     res.sendFile(path.join(__dirname, '..', 'public', 'chat.html'));
 });
-
-app.get('/user_rank.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'user_rank.html'));
-});
-
-app.get('/user_profile.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'user_profile.html'));
-});
+*/
 
 
 // ************************************************
