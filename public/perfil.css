@@ -1,0 +1,76 @@
+/* Perfil.css avanzado */
+body {
+    font-family: Arial, sans-serif;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    transition: background 0.5s, color 0.5s;
+}
+
+/* Tema claro / oscuro */
+body.light { background: linear-gradient(135deg, #f093fb, #f5576c); color: #333; }
+body.dark { background: #121212; color: #eee; }
+
+#perfil-container {
+    background: rgba(255,255,255,0.95);
+    padding: 40px 20px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 350px;
+    transition: background 0.5s, color 0.5s;
+}
+
+#perfil-container img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin-bottom: 20px;
+    border: 3px solid #fff;
+    object-fit: cover;
+    transition: transform 0.3s;
+}
+#perfil-container img:hover { transform: scale(1.1); }
+
+#perfil-container p {
+    font-size: 18px;
+    margin: 8px 0;
+    color: inherit;
+}
+
+#perfil-container input[type="text"] {
+    width: calc(100% - 20px);
+    padding: 8px;
+    margin-top: 5px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+#guardarBtn, #perfil-container button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    background: #8f94fb;
+    color: white;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: background 0.3s;
+}
+
+#perfil-container a {
+    display: block;
+    margin-top: 10px;
+    color: #007bff;
+    text-decoration: none;
+}
+
+/* Responsivo */
+@media screen and (max-width: 600px){
+    #perfil-container img { width: 90px; height: 90px; }
+    #perfil-container p { font-size: 16px; }
+    #perfil-container { padding: 30px 15px; }
+}
