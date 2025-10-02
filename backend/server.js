@@ -7,14 +7,14 @@ const { Server } = require("socket.io");
 const multer = require("multer");
 const path = require("path");
 
-// --- RUTA CORREGIDA ---
-// CRÍTICO: Sube un nivel (..) para encontrar 'utils.js' en la carpeta raíz (CC/)
-const { getRango } = require("../utils"); 
+// --- RUTA CORREGIDA DEFINITIVA ---
+// CRÍTICO: Sube un nivel (..) y entra en la carpeta 'src' para encontrar 'utils.js'
+const { getRango } = require("../src/utils"); 
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-const PORT = 3000;
+const PORT = 3000; // Asumo que usas el puerto 3000, aunque el navegador muestre 8080.
 
 // --- CONFIGURACIÓN BASE ---
 const rootDir = path.join(__dirname, '..'); // Directorio raíz (CC/)
