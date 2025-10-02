@@ -1,14 +1,11 @@
-// /backend/server.js - Versión FINAL y Simplificada
+// /backend/server.js - Versión FINAL y COMPLETA para resolver Cannot GET /login.html
 
 const express = require('express');
 const http = require('http');
 const path = require('path');
 const { WebSocketServer } = require('ws'); 
 
-// ************************************************
-// 1. IMPORTACIÓN DEL MANEJADOR DE WS
-// ************************************************
-// Importamos desde el mismo directorio /backend/
+// --- CRÍTICO: Importación del WS ---
 const { setupWebSocketListeners } = require('./websocket'); 
 
 // --- Inicialización ---
@@ -16,42 +13,27 @@ const app = express();
 const server = http.createServer(app);
 const PORT = 8080; 
 
-// --- Middleware CRÍTICO ---
-// Express sirve el contenido de la carpeta 'public' por defecto.
-// Esto significa que:
-//   - /login.html  =>  busca en public/login.html
-//   - /styles/...  =>  busca en public/styles/...
+// --- 1. Middleware de Archivos Estáticos ---
+// Sirve CSS, JS, imágenes, y todos los archivos HTML (excepto '/')
 app.use(express.static(path.join(__dirname, '../public'))); 
 
 
 // ************************************************
-// 2. RUTAS EXPRESS SIMPLIFICADAS
+// 2. RUTAS EXPRESS DEFINITIVAS
 // ************************************************
-// Ya que 'public' es la raíz estática, solo necesitamos redirigir a /login.html
-// y /chat.html. Express automáticamente encuentra el archivo en 'public/'.
 
+// Ruta Raíz: CRÍTICO - Forzamos el envío del login.html
+// __dirname (backend) + '..' (sube a CC) + 'public' (entra a public) + 'login.html'
 app.get('/', (req, res) => {
-    // Redirige al archivo login.html que está en la raíz estática
-    res.redirect('/login.html'); 
-});
-
-// Nota: Las rutas app.get('/login.html', ...) y app.get('/chat.html', ...)
-// ya NO son estrictamente necesarias, pero si las tenías por seguridad o lógica:
-/*
-app.get('/login.html', (req, res) => {
+    console.log("[SERVER] Serviendo /login.html");
     res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
 });
 
-app.get('/chat.html', (req, res) => {
-    // La redirección del login lleva aquí
-    res.sendFile(path.join(__dirname, '..', 'public', 'chat.html'));
-});
-*/
+// Nota: Todas las demás rutas de HTML (/chat.html, /styles/...) son manejadas 
+// por app.use(express.static) y funcionarán automáticamente porque están en 'public/'.
 
 
-// ************************************************
-// 3. INICIALIZACIÓN DEL SERVIDOR WS
-// ************************************************
+// --- 3. Inicialización del Servidor WS ---
 const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws) => {
@@ -60,9 +42,7 @@ wss.on('connection', (ws) => {
 });
 
 
-// ************************************************
-// 4. ARRANQUE
-// ************************************************
+// --- 4. Arranque ---
 server.listen(PORT, () => {
     console.log(`Servidor HTTP y WS corriendo en http://localhost:${PORT}`);
 });
