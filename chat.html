@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat en Línea</title>
+    <link rel="stylesheet" href="/styles/01_base.css"> 
+    <link rel="stylesheet" href="/styles/04_chat_styles.css"> 
+</head>
+<body>
+    <div id="chat-wrapper">
+        
+        <div id="sidebar">
+            <h3 id="chat-header">Conectado como...</h3>
+            <h4>Usuarios Conectados:</h4>
+            <ul id="user-list">
+                </ul>
+        </div>
+
+        <div id="main-chat">
+            
+            <h1>Chat General</h1>
+
+            <div id="chat-messages">
+                </div>
+
+            <div id="chat-input-area">
+                <form id="message-form">
+                    <input type="text" id="message-input" placeholder="Escribe un mensaje o comando...">
+                </form>
+            </div>
+        </div>
+
+    </div>
+    
+    <script type="module" src="/scripts/main.js"></script> 
+</body>
+</html>
