@@ -1,4 +1,4 @@
-const mongoose = require('mongoose'); // <--- CORRECTO: Solo Mongoose
+const mongoose = require('mongoose'); 
 
 const UserProfileSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
