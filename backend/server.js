@@ -3,25 +3,31 @@ const http = require('http');
 const path = require('path');
 const { initWebSocketServer } = require('./websocket');
 const { connectDB } = require('./config/db');
+const { configureSession } = require('./config/session'); // ¡NUEVO!
+const mainRouter = require('./routes/index'); // ¡NUEVO!
 const { PORT } = require('./config/constants');
 
 const app = express();
 const server = http.createServer(app);
 
-// Conectar a la DB
+// 1. Conexión de la Base de Datos
 connectDB();
 
-// Servir archivos estáticos desde la carpeta 'public'
+// 2. Configuración de Sesiones
+app.use(configureSession());
+
+// 3. Middlewares de Archivos Estáticos
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Ruta principal
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
-});
+// 4. Conectar el Enrutador
+// Todas las rutas (/, /chat, /login, etc.) se manejan ahora en routes/index.js
+app.use('/', mainRouter); 
 
-// Iniciar el servidor WebSocket
+// 5. Inicialización del Servidor WebSocket
 initWebSocketServer(server);
 
+// 6. Arranque del Servidor
 server.listen(PORT, () => {
-    console.log(`Servidor HTTP y WebSocket escuchando en http://localhost:${PORT}`);
+    console.log(`Servidor escuchando en http://localhost:${PORT}`);
+    console.log(`Modo: ${process.env.NODE_ENV || 'development'}`);
 });
