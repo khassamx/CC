@@ -1,18 +1,17 @@
-// connect.js (VERSIÓN CORREGIDA PARA PUERTO 8080)
+// connect.js (VERSIÓN CORREGIDA PARA PUERTO 8080 y SUBDOMINIO NUEVO)
 
 const localtunnel = require('localtunnel');
 
 async function startTunnel() {
     try {
-        // --- CRÍTICO: El puerto ha sido cambiado a 8080 ---
         const PORT_TO_EXPOSE = 8080; 
         console.log(`\nIniciando túnel para el puerto ${PORT_TO_EXPOSE}...`);
         
-        // ¡IMPORTANTE! Cambia 'tu-chat-global-aqui' por un nombre de subdominio que quieras usar. 
-        // Si ya usaste uno, el sistema puede forzarte a usar otro, o puedes dejarlo null.
+        // CRÍTICO: ¡CAMBIA ESTE subdominio por uno que te guste y sea único!
+        // Usar un nombre nuevo como 'chat-de-rangos-2025' suele evitar la página de advertencia de contraseña.
         const tunnel = await localtunnel({ 
             port: PORT_TO_EXPOSE, 
-            subdomain: 'tu-chat-global-aqui' // ¡Cámbialo si quieres uno fijo!
+            subdomain: 'chat-de-rangos-2025' // <-- ¡NUEVO SUBDOMINIO!
         });
 
         console.log(`\n🎉 ¡Túnel establecido! 🎉`);
