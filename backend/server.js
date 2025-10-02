@@ -1,4 +1,4 @@
-// server.js (Ubicación: Carpeta backend/ o raíz, según tu estructura)
+// backend/server.js (Ubicación: Dentro de la carpeta backend/)
 
 const express = require("express");
 const fs = require("fs");
@@ -7,8 +7,9 @@ const { Server } = require("socket.io");
 const multer = require("multer");
 const path = require("path");
 
-// --- REQUIERE LA UTILIDAD DE RANGOS ---
-const { getRango } = require("./utils"); 
+// --- RUTA CORREGIDA ---
+// CRÍTICO: Sube un nivel (..) para encontrar 'utils.js' en la carpeta raíz (CC/)
+const { getRango } = require("../utils"); 
 
 const app = express();
 const server = http.createServer(app);
@@ -16,7 +17,7 @@ const io = new Server(server);
 const PORT = 3000;
 
 // --- CONFIGURACIÓN BASE ---
-const rootDir = path.join(__dirname, '..'); // Asume que server.js está un nivel abajo del root.
+const rootDir = path.join(__dirname, '..'); // Directorio raíz (CC/)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -25,13 +26,14 @@ app.use(express.static(path.join(rootDir, 'public')));
 app.use('/uploads', express.static(path.join(rootDir, 'uploads')));
 
 // --- GESTIÓN DE ARCHIVOS (users.json) ---
+// Asume que users.json está en el mismo nivel que server.js, dentro de backend/
 const usersDataPath = path.join(__dirname, 'users.json');
 
 function readUsers() {
     try {
         return JSON.parse(fs.readFileSync(usersDataPath, 'utf8'));
     } catch (e) {
-        console.error("Error leyendo users.json:", e);
+        console.error("Error leyendo users.json. Creando archivo vacío.", e.message);
         return {};
     }
 }
@@ -59,7 +61,7 @@ app.post("/login", (req, res) => {
     const { usuario, password } = req.body;
     const users = readUsers();
     
-    // CRÍTICO: Convertir a minúsculas para buscar en la base de datos
+    // Convertir a minúsculas para buscar en la base de datos
     const userKey = usuario.toLowerCase(); 
 
     if(users[userKey] && users[userKey].password === password){
@@ -71,11 +73,11 @@ app.post("/login", (req, res) => {
             writeUsers(users); 
         }
         
-        // CRÍTICO: Calcular y agregar la información del rango
+        // Calcular y agregar la información del rango
         const rangoInfo = getRango(userProfile.mensajes);
         userProfile.rango = rangoInfo.nombre; 
         userProfile.rangoCss = rangoInfo.cssClass; 
-        userProfile.nivel = rangoInfo.nivel; // Nivel numérico (opcional, pero útil)
+        userProfile.nivel = rangoInfo.nivel; 
 
         // Se envía el perfil completo, incluyendo el rango y la clase CSS
         res.json({ ok: true, user: { ...userProfile, usuario: userKey } });
@@ -102,7 +104,7 @@ io.on("connection", socket => {
     socket.on("join", (perfil) => {
         currentUserID = perfil.id;
         
-        // Asegura que el perfil tenga los campos de rango, incluso si no los trae del login (caso de reconexión)
+        // Asegura que el perfil tenga los campos de rango, incluso si no los trae del login
         if (!perfil.rango) {
              const users = readUsers();
              const userKey = perfil.usuario.toLowerCase();
@@ -144,7 +146,7 @@ io.on("connection", socket => {
             ...data, 
             nombre: remitente.nombre, 
             rango: remitente.rango,
-            rangoCss: remitente.rangoCss, // CRÍTICO: Envía la clase CSS para el frontend
+            rangoCss: remitente.rangoCss, // Envía la clase CSS para el frontend
             foto: remitente.foto 
         });
 
@@ -189,10 +191,10 @@ io.on("connection", socket => {
     // ACTUALIZACIÓN DE PERFIL
     socket.on("profile_update", (updatedPerfil) => {
         if (connectedUsers[updatedPerfil.id]) {
-            // Actualiza solo los campos permitidos y mantiene los campos de Socket.io
+            // Actualiza los datos conectados
             connectedUsers[updatedPerfil.id] = { 
                 ...connectedUsers[updatedPerfil.id], 
-                nombre: updatedPerfil.nombre, // Solo actualizamos nombre y foto
+                nombre: updatedPerfil.nombre, 
                 foto: updatedPerfil.foto 
             };
             
