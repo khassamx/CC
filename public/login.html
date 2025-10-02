@@ -1,64 +1,97 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Optimizado</title>
-    <link rel="stylesheet" href="/styles/01_base.css"> 
-    <link rel="stylesheet" href="/styles/03_components.css"> 
-    <link rel="stylesheet" href="/styles/04_chat_styles.css">
+  <meta charset="UTF-8">
+  <title>Login de Acceso</title>
+  <style>
+    /* Estilo Minimalista y Centrado */
+    body { 
+      font-family: Arial, sans-serif; 
+      display:flex; 
+      height:100vh; 
+      justify-content:center; 
+      align-items:center; 
+      background:#111; 
+      color:white; 
+    }
+    .login-box { 
+      background:#222; 
+      padding:40px; 
+      border-radius:15px; 
+      text-align:center; 
+      box-shadow:0 0 20px rgba(0, 0, 0, 0.5); 
+      max-width: 350px;
+      width: 90%;
+    }
+    input { 
+      padding:12px 15px; 
+      border:none; 
+      border-radius:8px; 
+      margin-top:20px; 
+      text-align:center; 
+      font-size:18px;
+      width: 100%;
+      box-sizing: border-box; 
+    }
+    h2 { margin-bottom:20px; color: #aaffaa; }
+    #mensaje { 
+      margin-top:15px; 
+      font-weight: bold;
+      height: 20px; /* Para evitar saltos al cambiar texto */
+    }
+  </style>
 </head>
 <body>
-    
-    <div id="app-container">
-        
-        <div id="login-view" class="view active">
-            <div id="login-container">
-                <h2>Ingreso al Chat</h2>
-                <form id="login-form"> 
-                    <input type="text" id="username" placeholder="Usuario/Clave..." required> 
-                    <p>Escribe tu usuario para iniciar sesión automáticamente (Mayús/Minús es flexible).</p>
-                    </form>
-            </div>
-        </div>
+  <div class="login-box">
+    <h2>Ingreso al Chat de Rangos</h2>
+    <input type="text" id="usuario" placeholder="Ingresa tu usuario/clave">
+    <p id="mensaje">Escribe tu usuario para validar el acceso...</p>
+  </div>
 
-        <div id="chat-view" class="view hidden">
-            <div id="navigation">
-                <a href="#chat" class="active" data-view="chat">💬 Chat</a>
-                <a href="#rank" data-view="rank">⭐ Ranking</a>
-                </div>
-            
-            <div id="main-chat">
-                <h3 id="chat-header">Bienvenido/a: <span id="user-alias"></span></h3>
-                <div id="chat-messages">
-                    </div>
-                
-                <div id="chat-input-area">
-                    <form id="message-form">
-                        <input type="file" id="media-upload" accept="image/*,video/*" style="display:none;">
-                        <button type="button" id="upload-button" title="Enviar Foto/Video">📷</button>
-                        <input type="text" id="message-input" placeholder="Escribe texto o /comando (ej: /ban usuario)...">
-                    </form>
-                </div>
-            </div>
-            
-            <div id="sidebar">
-                <h4>Usuarios Conectados:</h4>
-                <ul id="user-list"></ul>
-            </div>
-        </div>
+  <script>
+    // **Base de datos de usuarios y rangos (Local)**
+    // Los nombres son las claves de ingreso (flexibles a mayúsculas/minúsculas)
+    const usuarios = {
+      "oliver": "Fundador",
+      "aye_russu": "Líder",
+      "atlas": "Colíder",
+      "zoe": "Veterano",
+      "mili": "Miembro"
+    };
 
-        <div id="rank-view" class="view hidden">
-            <div id="navigation">
-                <a href="#chat" data-view="chat">💬 Chat</a>
-                <a href="#rank" class="active" data-view="rank">⭐ Ranking</a>
-            </div>
-            <h1>Clasificación de Usuarios</h1>
-            <ul id="rank-list"></ul>
-        </div>
-        
-    </div>
-    
-    <script type="module" src="/scripts/main.js"></script> 
+    const inputUsuario = document.getElementById("usuario");
+    const mensaje = document.getElementById("mensaje");
+    let isRedirecting = false; // Bandera para evitar doble redirección
+
+    inputUsuario.addEventListener("input", () => {
+      // Normalizar el valor a minúsculas para la validación flexible
+      const valor = inputUsuario.value.trim().toLowerCase();
+
+      if (isRedirecting) return; // Si ya estamos redirigiendo, ignorar
+
+      // Validar si el usuario existe en la lista
+      if (usuarios[valor]) {
+        // Usuario correcto: asignar rango y preparar redirección
+        const rangoAsignado = usuarios[valor];
+        mensaje.textContent = `✔ Usuario válido: [${rangoAsignado}]. Entrando...`;
+        mensaje.style.color = "lightgreen";
+        isRedirecting = true; // Activar bandera
+
+        setTimeout(() => {
+          // Redirección CRÍTICA a chat.html, pasando usuario y rango por URL
+          const url = `chat.html?usuario=${encodeURIComponent(valor)}&rango=${encodeURIComponent(rangoAsignado)}`;
+          window.location.href = url;
+        }, 800); // Pequeña pausa de 0.8 segundos para mostrar el mensaje
+      } else if (valor.length > 0) {
+        // Usuario incorrecto y el campo no está vacío
+        mensaje.textContent = "❌ Usuario incorrecto. Intenta de nuevo.";
+        mensaje.style.color = "red";
+      } else {
+        // Campo vacío
+        mensaje.textContent = "Escribe tu usuario para validar el acceso...";
+        mensaje.style.color = "white";
+      }
+    });
+  </script>
 </body>
 </html>
