@@ -6,7 +6,7 @@ const messageSchema = new mongoose.Schema({
     text: String,
     rank: String,
     color: String,
-    isDM: Boolean,
+    isDM: { type: Boolean, default: false },
     timestamp: String,
     createdAt: { type: Date, default: Date.now, index: true }
 });
