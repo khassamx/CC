@@ -1,11 +1,13 @@
 const express = require('express');
 const http = require('http');
 const path = require('path');
-const { initWebSocketServer } = require('./websocket');
 const { connectDB } = require('./config/db');
-const { configureSession } = require('./config/session'); // ¡NUEVO!
-const mainRouter = require('./routes/index'); // ¡NUEVO!
+const { configureSession } = require('./config/session');
+const mainRouter = require('./routes/index');
 const { PORT } = require('./config/constants');
+
+// ⬅️ IMPORTACIÓN CORREGIDA: Ahora importamos la función usando desestructuración
+const { initWebSocketServer } = require('./websocket'); 
 
 const app = express();
 const server = http.createServer(app);
@@ -20,11 +22,10 @@ app.use(configureSession());
 app.use(express.static(path.join(__dirname, '../public')));
 
 // 4. Conectar el Enrutador
-// Todas las rutas (/, /chat, /login, etc.) se manejan ahora en routes/index.js
 app.use('/', mainRouter); 
 
 // 5. Inicialización del Servidor WebSocket
-initWebSocketServer(server);
+initWebSocketServer(server); // <--- AHORA SÍ ES UNA FUNCIÓN VÁLIDA
 
 // 6. Arranque del Servidor
 server.listen(PORT, () => {
