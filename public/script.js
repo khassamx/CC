@@ -1,13 +1,14 @@
-// public/script.js (Lógica Adaptada a la Interfaz de Botones)
+// public/script.js (VERSIÓN CORREGIDA Y OPTIMIZADA)
 
 const user = JSON.parse(localStorage.getItem("userProfile") || '{}');
+// CRÍTICO: Redireccionamiento a la nueva página principal 'index.html'
 if (!user || !user.id) {
-    // Redirigir al login si no hay perfil
     if (window.location.pathname !== '/login.html') {
         window.location.href = "login.html";
     }
 }
 
+// Inicialización de Socket.io (Se hace aquí para que esté disponible globalmente)
 const socket = io();
 
 // --- Lógica del Tema Automático ---
@@ -23,59 +24,85 @@ function toggleTheme() {
 }
 
 
-// --- Lógica de Navegación por Botones ---
+// --- Lógica de Navegación por Botones (abrirSeccion) ---
 const secciones = document.querySelectorAll('.seccion');
+// Variables globales para el estado del chat
 let seccionActivaId = 'chat-global'; 
 let targetUserPrivate = null;
 
+const mensajeInput = document.getElementById("mensajeInput");
+const enviarBtn = document.getElementById("enviarBtn");
+const targetUserInfo = document.getElementById("target-user-info");
+const chatFooter = document.getElementById('chat-footer');
+
+
 function abrirSeccion(id) {
     secciones.forEach(s => s.style.display = 'none');
-    document.getElementById(id).style.display = 'flex'; // Usamos 'flex' para las secciones
-    seccionActivaId = id;
     
-    // Si estamos en el chat privado, borramos el target al cambiar de pestaña
-    if (id !== 'chat-privado') {
-        targetUserPrivate = null;
-        document.getElementById('target-user-info').textContent = '';
+    // Las secciones chat-global, chat-privado y subir-archivos deben usar 'flex' para diseño responsivo.
+    const displayStyle = (id === 'chat-global' || id === 'chat-privado' || id === 'subir-archivos') ? 'flex' : 'block';
+    
+    const targetElement = document.getElementById(id);
+    if (targetElement) {
+        targetElement.style.display = displayStyle;
     }
     
-    // Mostrar/Ocultar el footer del chat si es una sección de chat
-    const chatFooter = document.getElementById('chat-footer');
+    seccionActivaId = id;
+    
+    // Lógica para mostrar/ocultar el input de mensaje
     if (id === 'chat-global' || id === 'chat-privado') {
         chatFooter.style.display = 'flex';
+        mensajeInput.placeholder = targetUserPrivate 
+            ? `Escribiendo mensaje privado para @${targetUserPrivate}...`
+            : "Escribe un mensaje o @usuario mensaje...";
     } else {
         chatFooter.style.display = 'none';
     }
+
+    // Si salimos del chat privado, borramos el target.
+    if (id !== 'chat-privado' && id !== 'chat-global') {
+        targetUserPrivate = null;
+        targetUserInfo.textContent = '';
+    }
 }
 
+// Inicializar la escucha de los botones y mostrar la sección inicial
 document.querySelectorAll('#menu button[data-target]').forEach(button => {
     button.addEventListener('click', () => abrirSeccion(button.dataset.target));
 });
 
-// Inicializar mostrando el chat global
-abrirSeccion('chat-global'); 
+// Forzar la carga de datos del perfil al inicio para que estén disponibles
+document.addEventListener('DOMContentLoaded', () => {
+    cargarDatosPerfil();
+    // Abrir la sección por defecto después de cargar el DOM
+    abrirSeccion('chat-global'); 
+});
 
 
-// --- Lógica del Chat y Socket.io ---
-
+// --- Lógica del Chat y Socket.io (Todo el código de chat debe estar aquí) ---
 if (socket) {
     // Inicialización del usuario al servidor
     socket.emit("join", user);
 
     const mensajesGlobalDiv = document.getElementById("mensajes-global");
-    const mensajeInput = document.getElementById("mensajeInput");
-    const enviarBtn = document.getElementById("enviarBtn");
     const userList = document.getElementById("user-list");
-    const targetUserInfo = document.getElementById("target-user-info");
     const archivoInput = document.getElementById("archivoInput");
     const enviarArchivoBtn = document.getElementById("enviarArchivoBtn");
     const uploadStatus = document.getElementById("upload-status");
+
 
     // 1. Renderizado de Mensajes
     function appendMessage(data, isPrivate = false) {
         // Decide dónde mostrar el mensaje
         const targetDiv = isPrivate ? document.getElementById("mensajes-privado") : mensajesGlobalDiv;
         if (!targetDiv) return;
+
+        // Si es un mensaje privado, filtramos para que sólo se muestre si la pestaña es la correcta
+        if (isPrivate && seccionActivaId !== 'chat-privado') {
+            // Podrías agregar una notificación visual si el mensaje llega en otra pestaña
+            // console.log("Mensaje privado recibido en otra pestaña, no se renderiza automáticamente.");
+            // return;
+        }
 
         const isSender = isPrivate && data.isSender;
         const msgClass = isPrivate ? 'privado' : data.tipo || 'global';
@@ -85,10 +112,10 @@ if (socket) {
         
         targetDiv.innerHTML += `
             <div class="mensaje ${msgClass}">
-                <img src="${data.foto || user.foto}" class="msg-photo" onerror="this.src='/uploads/default.png'">
+                <img src="${data.foto || '/uploads/default.png'}" class="msg-photo" onerror="this.src='/uploads/default.png'">
                 <div class="msg-content">
                     <div class="msg-header">
-                        <span class="rango">[${data.rango || user.rango}]</span>
+                        <span class="rango">[${data.rango || 'User'}]</span>
                         <span class="usuario">${senderName}</span>
                     </div>
                     <p>${destinoTag}${mediaContent}</p>
@@ -114,24 +141,24 @@ if (socket) {
         const texto = mensajeInput.value.trim();
         if (!texto) return;
 
-        // PRIORIDAD 1: Chat Privado (si targetUserPrivate está fijado)
+        // Comprobamos en qué modo de chat estamos
         if (targetUserPrivate) {
+            // MODO 1: MP fijo (desde el clic en la lista de usuarios)
             socket.emit("mensajePrivado", { id: user.id, destino: targetUserPrivate, texto: texto });
             
-        // PRIORIDAD 2: Chat Global (si no hay target fijado y la pestaña es Global)
-        } else if (seccionActivaId === 'chat-global') {
-            socket.emit("mensajeGlobal", { id: user.id, texto });
-
-        // PRIORIDAD 3: Chat Privado (si está en la pestaña Privada y usa @usuario)
         } else if (seccionActivaId === 'chat-privado') {
+            // MODO 2: MP en la pestaña privada, usando @usuario
              const match = texto.match(/^@(\w+)\s+(.*)/);
              if (match) {
-                const destino = match[1];
+                const destino = match[1].toLowerCase();
                 const mensaje = match[2];
-                socket.emit("mensajePrivado", { id: user.id, destino: destino.toLowerCase(), texto: mensaje });
+                socket.emit("mensajePrivado", { id: user.id, destino: destino, texto: mensaje });
              } else {
-                 alert("En la sección de Chat Privado, usa el formato: @usuario mensaje");
+                 alert("En el chat privado, usa el formato: @usuario mensaje o haz clic en un usuario.");
              }
+        } else {
+            // MODO 3: Chat Global
+            socket.emit("mensajeGlobal", { id: user.id, texto });
         }
         
         mensajeInput.value = '';
@@ -170,7 +197,7 @@ if (socket) {
         }
     });
 
-    // Event Listeners
+    // CRÍTICO: Los Event Listeners para enviar mensajes
     enviarBtn.addEventListener("click", enviarMensaje);
     mensajeInput.addEventListener("keypress", (e) => {
         if (e.key === 'Enter') {
@@ -183,14 +210,14 @@ if (socket) {
     // 4. Recepción de Eventos y Lista de Usuarios
     socket.on("mensajeGlobal", data => appendMessage(data, false));
     socket.on("mensajePrivado", data => appendMessage(data, true));
-    socket.on("server_message", data => appendMessage({ texto: data.texto, rango: 'System' }, false));
+    socket.on("server_message", data => appendMessage({ texto: data.texto, rango: 'System', nombre: 'System' }, false));
 
     socket.on("update_users", (users) => {
         userList.innerHTML = '';
         users.forEach(u => {
             if (u.id === user.id) return; // No mostrarse a sí mismo
             const li = document.createElement('li');
-            li.innerHTML = `<img src="${u.foto}" class="user-photo-list" onerror="this.src='/uploads/default.png'">
+            li.innerHTML = `<img src="${u.foto || '/uploads/default.png'}" class="user-photo-list" onerror="this.src='/uploads/default.png'">
                             <span>${u.nombre} [${u.rango}]</span>`;
             li.onclick = () => {
                 targetUserPrivate = u.usuario.toLowerCase();
@@ -205,21 +232,22 @@ if (socket) {
 }
 
 
-// --- Lógica del Perfil (Adaptada) ---
-if (document.getElementById("perfil")) {
+// --- Lógica del Perfil (Corrección para asegurar la carga al inicio) ---
+function cargarDatosPerfil() {
+    if (!document.getElementById("perfil")) return;
+
     const fotoImg = document.getElementById("foto");
     const nombreInput = document.getElementById("nombre");
     const subirMediaPerfilInput = document.getElementById("subirMediaPerfil");
     const guardarBtn = document.getElementById("guardarBtn");
     
     // Cargar datos
-    fotoImg.src = user.foto;
-    nombreInput.value = user.nombre;
-    document.getElementById("id").textContent = user.id;
-    document.getElementById("rango").textContent = user.rango;
+    fotoImg.src = user.foto || '/uploads/default.png';
+    nombreInput.value = user.nombre || "";
+    document.getElementById("id").textContent = user.id || "N/A";
+    document.getElementById("rango").textContent = user.rango || "User";
 
     async function uploadAndSync(file) {
-        // ... (Lógica de subida y actualización de perfil, idéntica a la anterior) ...
         const formData = new FormData();
         formData.append('media', file);
         
@@ -231,11 +259,13 @@ if (document.getElementById("perfil")) {
                 user.foto = data.path; 
                 localStorage.setItem("userProfile", JSON.stringify(user));
                 fotoImg.src = data.path;
-                socket.emit("profile_update", user);
+                if (socket) socket.emit("profile_update", user);
                 alert("Foto/Video de perfil actualizado ✅");
+            } else {
+                 alert(`Error al subir: ${data.error || 'Desconocido'}`);
             }
         } catch (error) {
-            alert("Error al subir el archivo.");
+            alert("Error de conexión al subir el archivo.");
             console.error(error);
         }
     }
@@ -248,7 +278,7 @@ if (document.getElementById("perfil")) {
     guardarBtn.addEventListener("click", () => {
         user.nombre = nombreInput.value;
         localStorage.setItem("userProfile", JSON.stringify(user));
-        socket.emit("profile_update", user);
+        if (socket) socket.emit("profile_update", user);
         alert("Perfil guardado ✅");
     });
 }
