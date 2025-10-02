@@ -1,11 +1,11 @@
 /* ==================================== */
-/* 03_components.css - ESTILO MODERNO Y MINIMALISTA */
+/* 03_components.css - ESTILO MODERNO: SÓLO USUARIO */
 /* ==================================== */
 
-/* 1. Base del Cuerpo: Fondo limpio */
+/* 1. Base del Cuerpo: Minimalista */
 body {
-    background-color: #f0f2f5; /* Gris claro suave, común en apps modernas */
-    color: #333333; /* Texto principal gris oscuro */
+    background-color: #f0f2f5;
+    color: #333333;
     font-family: 'Arial', 'Helvetica Neue', sans-serif;
     margin: 0;
     padding: 0;
@@ -15,19 +15,18 @@ body {
     min-height: 100vh;
 }
 
-/* 2. Contenedor de Login: Tarjeta limpia y elevada */
+/* 2. Contenedor de Login: Tarjeta limpia */
 #login-container {
-    background: #ffffff; /* Fondo blanco */
+    background: #ffffff;
     border: none;
-    border-radius: 12px; /* Esquinas suaves */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Sombra sutil para efecto de elevación */
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     padding: 40px;
     width: 100%;
-    max-width: 360px; /* Tamaño ideal para un formulario */
+    max-width: 340px; 
     transition: transform 0.3s ease-in-out;
 }
 
-/* Efecto hover/activo sutil */
 #login-container:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
@@ -39,34 +38,34 @@ body {
     text-align: center;
     margin-bottom: 30px;
     font-size: 1.6em;
-    font-weight: 600; /* Seminegrita */
+    font-weight: 600;
 }
 
-/* 4. Inputs: Diseño limpio y enfocado */
+/* 4. Input Único: Diseño limpio y enfocado */
 #login-form {
     display: flex;
     flex-direction: column;
 }
 
-#login-form input[type="text"],
-#login-form input[type="password"] {
+/* ⬅️ SOLO APUNTAMOS AL INPUT DE TIPO TEXTO */
+#login-form input[type="text"] {
     width: 100%;
     padding: 14px 15px;
-    margin-bottom: 20px;
+    margin-bottom: 20px; /* Espacio debajo del input */
     background: #ffffff;
-    border: 1px solid #cccccc; /* Borde gris claro */
-    border-radius: 6px; /* Esquinas suaves */
+    border: 1px solid #cccccc;
+    border-radius: 6px;
     color: #333333;
     font-size: 1.05em;
     outline: none;
     transition: border-color 0.3s, box-shadow 0.3s;
     font-family: inherit;
-    box-sizing: border-box; /* Crucial para el padding */
+    box-sizing: border-box; 
 }
 
-/* Foco en el input: color de acento azul o verde */
+/* Estilo de foco */
 #login-form input:focus {
-    border-color: #007bff; /* Azul de acento moderno */
+    border-color: #007bff;
     box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
 }
 
@@ -75,15 +74,15 @@ body {
     opacity: 1;
 }
 
-/* 5. Texto de Instrucción (Opcional si lo dejas) */
+/* 5. Texto de Instrucción */
 #login-container p {
-    color: #6c757d; /* Gris tenue para instrucciones */
+    color: #6c757d;
     text-align: center;
     margin-top: 15px;
     font-size: 0.9em;
 }
 
-/* 6. Deshabilitar el carrusel de texto del modo hacker */
+/* 6. Eliminamos la sección de carrusel (si existía) */
 .hacker-intro {
     display: none; 
 }
