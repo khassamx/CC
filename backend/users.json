@@ -1,0 +1,23 @@
+{
+  "oliver": {
+    "nombre": "Oliver",
+    "rango": "Fundador",
+    "id": "001",
+    "foto": "/uploads/default.png",
+    "password": "Oliver"
+  },
+  "aye_russu": {
+    "nombre": "Aye Russu",
+    "rango": "Líder",
+    "id": "002",
+    "foto": "/uploads/default.png",
+    "password": "Aye2025"
+  },
+  "atlas": {
+    "nombre": "Atlas",
+    "rango": "Colíder",
+    "id": "003",
+    "foto": "/uploads/default.png",
+    "password": "Atlas001"
+  }
+}
