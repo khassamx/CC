@@ -1,34 +1,28 @@
-const express = require('express');
-const http = require('http');
-const path = require('path');
-const { connectDB } = require('./config/db');
-const { configureSession } = require('./config/session');
-const mainRouter = require('./routes/index');
-const { PORT } = require('./config/constants');
+// /backend/server.js (Fragmento CRÍTICO del arranque del servidor)
 
-// ⬅️ IMPORTACIÓN CORREGIDA: Ahora importamos la función usando desestructuración
-const { initWebSocketServer } = require('./websocket'); 
+// ... (El resto de tus imports: express, http, path, etc.)
+const { WebSocketServer } = require('ws'); // ¡Asegúrate de importar esto!
+const { setupWebSocketListeners } = require('./backend/websocket'); // Importamos la nueva función
 
-const app = express();
+// ... (Inicialización de Express y HTTP Server)
 const server = http.createServer(app);
+const PORT = 8080; 
 
-// 1. Conexión de la Base de Datos
-connectDB();
+// 1. CREAR el Servidor WebSocket (wss)
+const wss = new WebSocketServer({ server });
 
-// 2. Configuración de Sesiones
-app.use(configureSession());
+// 2. Manejar la CONEXIÓN de un cliente
+wss.on('connection', (ws) => {
+    console.log('[WebSocket] Nuevo cliente conectado.');
+    
+    // CRÍTICO: Llamamos al manejador para configurar los eventos de ESTA conexión
+    setupWebSocketListeners(ws, wss);
+});
 
-// 3. Middlewares de Archivos Estáticos
-app.use(express.static(path.join(__dirname, '../public')));
 
-// 4. Conectar el Enrutador
-app.use('/', mainRouter); 
+// ... (El resto del código de Express y MongoDB)
 
-// 5. Inicialización del Servidor WebSocket
-initWebSocketServer(server); // <--- AHORA SÍ ES UNA FUNCIÓN VÁLIDA
-
-// 6. Arranque del Servidor
 server.listen(PORT, () => {
-    console.log(`Servidor escuchando en http://localhost:${PORT}`);
-    console.log(`Modo: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Servidor HTTP y WS corriendo en http://localhost:${PORT}`);
+    connectDB();
 });
