@@ -4,13 +4,13 @@ exports.findOrCreateUser = async (data) => {
     let user = await UserProfile.findOne({ username: data.username });
     if (!user) {
         user = new UserProfile(data);
-        await user.save();
     } else {
-        // Actualizar datos no persistentes como chatname/avatarUrl
+        // Actualizar datos de sesión (chatname, avatar, última actividad)
         user.chatname = data.chatname;
         user.avatarUrl = data.avatarUrl;
-        await user.save();
+        user.lastActive = Date.now();
     }
+    await user.save();
     return user;
 };
 
