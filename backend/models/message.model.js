@@ -1,4 +1,4 @@
-const mongoose = require('mongoose'); // <--- CORRECCIÓN NECESARIA
+const mongoose = require('mongoose'); 
 
 const messageSchema = new mongoose.Schema({
     id: { type: String, required: true },
