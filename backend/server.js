@@ -1,48 +1,94 @@
-// /backend/server.js - Versión FINAL y COMPLETA para resolver Cannot GET /login.html
+// /public/scripts/main.js - Router ÚNICO y Optimizado (SPA)
 
-const express = require('express');
-const http = require('http');
-const path = require('path');
-const { WebSocketServer } = require('ws'); 
+import { loadLocalData, saveLocalData } from './utils/localPersistence.js';
+import { handleLogin } from './components/appEvents.js'; 
+import { initSocket, sendMessage } from './services/websocketService.js';
+import { initChatPage } from './components/chatEvents.js'; 
+import { initRankPage } from './components/rankEvents.js'; 
 
-// --- CRÍTICO: Importación del WS ---
-const { setupWebSocketListeners } = require('./websocket'); 
+let userData = loadLocalData();
+let isChatInitialized = false; // Bandera para evitar doble inicialización de WS
 
-// --- Inicialización ---
-const app = express();
-const server = http.createServer(app);
-const PORT = 8080; 
+// ===============================================
+// 1. MANEJO DE VISTAS Y HASH ROUTING
+// ===============================================
 
-// --- 1. Middleware de Archivos Estáticos ---
-// Sirve CSS, JS, imágenes, y todos los archivos HTML (excepto '/')
-app.use(express.static(path.join(__dirname, '../public'))); 
+function showView(viewName) {
+    const views = document.querySelectorAll('.view');
+    views.forEach(view => {
+        view.classList.add('hidden');
+        view.classList.remove('active');
+    });
 
+    const targetView = document.getElementById(viewName + '-view');
+    if (targetView) {
+        targetView.classList.remove('hidden');
+        targetView.classList.add('active');
 
-// ************************************************
-// 2. RUTAS EXPRESS DEFINITIVAS
-// ************************************************
+        // Inicializar la lógica solo cuando la vista se activa
+        if (viewName === 'chat' && !isChatInitialized) {
+            initChatPage(initSocket, sendMessage); 
+            isChatInitialized = true;
+        } else if (viewName === 'rank') {
+            initRankPage(initSocket); 
+        }
+    }
+}
 
-// Ruta Raíz: CRÍTICO - Forzamos el envío del login.html
-// __dirname (backend) + '..' (sube a CC) + 'public' (entra a public) + 'login.html'
-app.get('/', (req, res) => {
-    console.log("[SERVER] Serviendo /login.html");
-    res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
-});
+function handleHashChange() {
+    const hash = window.location.hash.slice(1) || 'chat'; // Por defecto es 'chat'
+    
+    if (!userData || !userData.username) {
+        showView('login');
+    } else {
+        showView(hash);
+    }
+}
 
-// Nota: Todas las demás rutas de HTML (/chat.html, /styles/...) son manejadas 
-// por app.use(express.static) y funcionarán automáticamente porque están en 'public/'.
+// ===============================================
+// 2. LÓGICA DE LOGIN
+// ===============================================
+function initializeLoginPage() {
+    const loginForm = document.getElementById('login-form');
+    if (!loginForm) return;
 
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); 
+        const username = document.getElementById('username').value;
+        
+        loginForm.disabled = true;
 
-// --- 3. Inicialización del Servidor WS ---
-const wss = new WebSocketServer({ server });
+        const success = await handleLogin(username, null, saveLocalData, initSocket);
+        
+        loginForm.disabled = false;
 
-wss.on('connection', (ws) => {
-    console.log('[WebSocket] Nuevo cliente conectado.');
-    setupWebSocketListeners(ws, wss);
-});
+        // CRÍTICO: Si es exitoso, actualiza userData y cambia la URL Hash
+        if (success) {
+            userData = loadLocalData(); // Recarga los datos guardados
+            window.location.hash = '#chat'; // Cambia la URL y llama a handleHashChange
+        }
+    });
+}
 
+// ===============================================
+// 3. BOOTSTRAP DE LA APLICACIÓN
+// ===============================================
+function bootstrapApp() {
+    // Escuchar cambios de URL (navegación del menú o botón Atrás/Adelante)
+    window.addEventListener('hashchange', handleHashChange);
+    
+    // Inicializar la lógica de login
+    initializeLoginPage();
 
-// --- 4. Arranque ---
-server.listen(PORT, () => {
-    console.log(`Servidor HTTP y WS corriendo en http://localhost:${PORT}`);
-});
+    // Iniciar la aplicación en la vista correcta
+    if (userData && userData.username) {
+        // Si ya está logueado, vamos directamente al chat (o al hash actual)
+        handleHashChange(); 
+    } else {
+        // Si no está logueado, mostrar login
+        showView('login');
+    }
+}
+
+// Iniciar la aplicación.
+document.addEventListener('DOMContentLoaded', bootstrapApp);
