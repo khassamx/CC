@@ -1,98 +1,95 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Login de Acceso</title>
-  <style>
-    body { 
-      font-family: Arial, sans-serif; 
-      display:flex; 
-      height:100vh; 
-      justify-content:center; 
-      align-items:center; 
-      background:#111; 
-      color:white; 
-    }
-    .login-box { 
-      background:#222; 
-      padding:40px; 
-      border-radius:15px; 
-      text-align:center; 
-      box-shadow:0 0 20px rgba(0, 0, 0, 0.5); 
-      max-width: 350px;
-      width: 90%;
-    }
-    input { 
-      padding:12px 15px; 
-      border:none; 
-      border-radius:8px; 
-      margin-top:20px; 
-      text-align:center; 
-      font-size:18px;
-      width: 100%;
-      box-sizing: border-box; 
-    }
-    h2 { margin-bottom:20px; color: #aaffaa; }
-    #mensaje { 
-      margin-top:15px; 
-      font-weight: bold;
-      height: 20px; 
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Login de Acceso</title>
+    <style>
+        body { font-family: Arial; display:flex; justify-content:center; align-items:center; height:100vh; background:#111; color:white; }
+        .login-box { background:#222; padding:30px; border-radius:15px; text-align:center; box-shadow:0 0 10px #000; }
+        input { padding:10px; border:none; border-radius:8px; margin-top:10px; width:100%; font-size:16px; box-sizing: border-box;}
+        #mensaje { margin-top:10px; font-weight: bold; height: 20px;}
+    </style>
 </head>
 <body>
-  <div class="login-box">
-    <h2>Ingreso al Chat de Rangos</h2>
-    <input type="text" id="usuario" placeholder="Ingresa tu usuario/clave">
-    <p id="mensaje">Escribe tu usuario para validar el acceso...</p>
-  </div>
+    <div class="login-box">
+        <h2>Ingresar al Chat</h2>
+        <input type="text" id="usuario" placeholder="Usuario" autocomplete="username">
+        <input type="password" id="password" placeholder="Contraseña" autocomplete="current-password">
+        <p id="mensaje">Escribe tus credenciales...</p>
+    </div>
 
-  <script>
-    const usuarios = {
-      // Usamos el nombre y un ID fijo para que el servidor lo rastree
-      "oliver": {nombre:"Oliver Doldán", rango:"Fundador", id:"001", foto:"/uploads/default.png"},
-      "aye_russu": {nombre:"Aye Russu", rango:"Líder", id:"002", foto:"/uploads/default.png"},
-      "atlas": {nombre:"Atlas", rango:"Colíder", id:"003", foto:"/uploads/default.png"},
-      "zoe": {nombre:"Zoe", rango:"Veterano", id:"004", foto:"/uploads/default.png"},
-      "mili": {nombre:"Mili", rango:"Miembro", id:"005", foto:"/uploads/default.png"}
-    };
+    <script>
+        const inputUsuario = document.getElementById("usuario");
+        const inputPassword = document.getElementById("password");
+        const mensaje = document.getElementById("mensaje");
+        let timer;
+        let isRedirecting = false;
 
-    const inputUsuario = document.getElementById("usuario");
-    const mensaje = document.getElementById("mensaje");
-    let isRedirecting = false; 
+        async function verificarUsuario() {
+            if (isRedirecting) return;
 
-    inputUsuario.addEventListener("input", () => {
-      const valor = inputUsuario.value.trim().toLowerCase();
+            const usuario = inputUsuario.value.trim();
+            const password = inputPassword.value.trim();
 
-      if (isRedirecting) return;
+            if (usuario.length === 0 || password.length === 0) {
+                mensaje.textContent = "Ingresa usuario y contraseña...";
+                mensaje.style.color = "white";
+                return;
+            }
+            
+            mensaje.textContent = "Verificando...";
+            mensaje.style.color = "yellow";
 
-      if (usuarios[valor]) {
-        const userData = usuarios[valor];
+            try {
+                const res = await fetch("/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ usuario, password })
+                });
+                const data = await res.json();
+
+                if(data.ok){
+                    isRedirecting = true;
+                    mensaje.textContent = `✔ ¡Bienvenido ${data.user.nombre}! Entrando...`;
+                    mensaje.style.color = "lightgreen";
+                    
+                    // Usamos localStorage para persistencia
+                    localStorage.setItem("userProfile", JSON.stringify(data.user)); 
+                    
+                    setTimeout(() => {
+                        window.location.href = "chat.html";
+                    }, 500);
+                } else {
+                    mensaje.textContent = "❌ Usuario o contraseña incorrecta.";
+                    mensaje.style.color = "red";
+                }
+            } catch (error) {
+                mensaje.textContent = "❌ Error de conexión con el servidor.";
+                mensaje.style.color = "red";
+                console.error("Error de Fetch:", error);
+            }
+        }
         
-        mensaje.textContent = `✔ Usuario válido: [${userData.rango}]. Entrando...`;
-        mensaje.style.color = "lightgreen";
-        isRedirecting = true;
-
-        // **CRÍTICO:** Guardar datos COMPLETOS en localStorage (se usarán en chat.html y perfil.html)
-        localStorage.setItem("perfilUsuario", JSON.stringify({
-            usuario: valor,
-            nombre: userData.nombre,
-            rango: userData.rango,
-            id: userData.id,
-            foto: localStorage.getItem("perfilUsuario") ? JSON.parse(localStorage.getItem("perfilUsuario")).foto : userData.foto // Mantener foto si ya existe
-        }));
-
-        setTimeout(() => {
-          window.location.href = "chat.html";
-        }, 800);
-      } else if (valor.length > 0) {
-        mensaje.textContent = "❌ Usuario incorrecto. Intenta de nuevo.";
-        mensaje.style.color = "red";
-      } else {
-        mensaje.textContent = "Escribe tu usuario para validar el acceso...";
-        mensaje.style.color = "white";
-      }
-    });
-  </script>
+        // Login Automático (sin necesidad de Enter)
+        function handleInput() {
+            clearTimeout(timer);
+            // Solo intenta la verificación si ambos campos tienen texto
+            if (inputUsuario.value.trim().length > 0 && inputPassword.value.trim().length > 0) {
+                timer = setTimeout(verificarUsuario, 600); 
+            }
+        }
+        
+        inputUsuario.addEventListener("input", handleInput);
+        inputPassword.addEventListener("input", handleInput);
+        
+        // Login Inmediato al presionar Enter
+        inputPassword.addEventListener("keypress", (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                clearTimeout(timer);
+                verificarUsuario();
+            }
+        });
+    </script>
 </body>
 </html>
