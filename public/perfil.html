@@ -1,101 +1,78 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Mi Perfil de Usuario</title>
-  <style>
-    body { font-family: Arial, sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; background:#1a1a1a; color:white; }
-    .perfil-container { background:#222; padding:30px; border-radius:10px; max-width:400px; width:90%; text-align:center; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); }
-    .foto-perfil img { width:100px; height:100px; border-radius:50%; object-fit:cover; margin-bottom:15px; border: 3px solid #00f; }
-    .foto-perfil button { background:#444; color:white; border:none; padding: 8px 12px; border-radius: 5px; cursor: pointer; }
-    .info input { width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #444; background: #333; color: white; box-sizing: border-box; }
-    .info p { text-align: left; margin: 10px 0; }
-    #guardar { padding:10px 20px; background:#00f; color:white; border:none; border-radius:5px; cursor:pointer; margin-top:15px; }
-    a { color: #88f; text-decoration: none; display: block; margin-top: 10px; }
-    a:hover { text-decoration: underline; }
-  </style>
-</head>
+    <meta charset="UTF-8">
+    <title>Perfil de Usuario</title>
+    </head>
 <body>
-  <div class="perfil-container">
-    <h1>Mi Perfil</h1>
-    <div class="foto-perfil">
-      <img id="foto" src="default.png" alt="Foto de perfil">
-      <input type="file" id="subirFoto" accept="image/*" style="display:none;">
-      <button onclick="document.getElementById('subirFoto').click()">Cambiar Foto</button>
-    </div>
-
-    <div class="info">
-      <p><strong>Usuario (Clave):</strong> <span id="usuario"></span></p>
-      <p><strong>Nombre en Chat:</strong> <input type="text" id="nombre"></p>
-      <p><strong>ID Único:</strong> <span id="id"></span></p>
-      <p><strong>Rango:</strong> <span id="rango"></span></p>
-    </div>
-
-    <button id="guardar">Guardar Cambios</button>
-    <a href="chat.html">Volver al Chat</a>
-  </div>
-
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const fotoInput = document.getElementById("subirFoto");
-    const fotoImg = document.getElementById("foto");
-    const guardarBtn = document.getElementById("guardar");
-    const socket = io(); 
-
-    let perfil = JSON.parse(localStorage.getItem("perfilUsuario"));
-
-    if(!perfil) window.location.href = "login.html";
-
-    fotoImg.src = perfil.foto;
-    document.getElementById("usuario").textContent = perfil.usuario;
-    document.getElementById("nombre").value = perfil.nombre;
-    document.getElementById("id").textContent = perfil.id;
-    document.getElementById("rango").textContent = perfil.rango;
-    
-    // Función para subir la foto al servidor (FETCH API - Óptimo)
-    async function uploadPhoto(file){
-        const formData = new FormData();
-        formData.append('profilePhoto', file); 
+    <div class="perfil-container">
+        <h2>Mi Perfil</h2>
+        <img id="foto" src="" width="100" height="100" style="border-radius:50%; object-fit: cover;">
+        <input type="file" id="subirMedia" style="display:none;" accept="image/*,video/*">
+        <button onclick="document.getElementById('subirMedia').click()">Cambiar Foto/Video</button>
         
-        try {
-            const response = await fetch('/upload-photo', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
+        <p>Nombre: <input type="text" id="nombre"></p>
+        <p>ID: <span id="id"></span></p>
+        <p>Rango: <span id="rango"></span></p>
+
+        <button id="guardar">Guardar Cambios</button>
+        <a href="chat.html">Volver al Chat</a>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let user = JSON.parse(localStorage.getItem("userProfile"));
+        if (!user) window.location.href = "login.html";
+
+        const fotoImg = document.getElementById("foto");
+        const nombreInput = document.getElementById("nombre");
+        const subirMediaInput = document.getElementById("subirMedia");
+        const guardarBtn = document.getElementById("guardar");
+
+        // Cargar datos
+        fotoImg.src = user.foto;
+        nombreInput.value = user.nombre;
+        document.getElementById("id").textContent = user.id;
+        document.getElementById("rango").textContent = user.rango;
+
+        // Función para subir archivos al servidor
+        async function uploadMedia(file) {
+            const formData = new FormData();
+            formData.append('media', file); // 'media' coincide con upload.single("media") en server.js
             
-            if (data.success) {
-                return data.url; 
-            } else {
-                alert('Error al subir la foto: ' + (data.message || 'Desconocido'));
-                return perfil.foto;
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+                return data.path;
+            } catch (error) {
+                console.error("Error al subir media:", error);
+                return user.foto;
             }
-        } catch (error) {
-            console.error('Error de red al subir la foto:', error);
-            alert('Error de conexión al intentar subir la foto.');
-            return perfil.foto;
         }
-    }
 
-    fotoInput.addEventListener("change", async (e)=>{
-      const file = e.target.files[0];
-      if(file){
-        const newUrl = await uploadPhoto(file); 
-        fotoImg.src = newUrl; 
-      }
-    });
+        // Evento de subida
+        subirMediaInput.addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const newPath = await uploadMedia(file);
+                fotoImg.src = newPath;
+                // Guardar inmediatamente después de la subida para reflejar la foto
+                guardarBtn.click(); 
+            }
+        });
 
-    guardarBtn.addEventListener("click", ()=>{
-      perfil.nombre = document.getElementById("nombre").value;
-      perfil.foto = fotoImg.src; 
-      
-      localStorage.setItem("perfilUsuario", JSON.stringify(perfil));
-      
-      // Notificar al servidor de Socket.io
-      socket.emit("profile_update", perfil);
-      
-      alert("Perfil guardado y notificado al chat ✅");
-    });
-  </script>
+        // Evento de Guardar
+        guardarBtn.addEventListener("click", () => {
+            user.nombre = nombreInput.value;
+            user.foto = fotoImg.src; 
+            
+            localStorage.setItem("userProfile", JSON.stringify(user));
+            
+            // Notificar al servidor y a otros usuarios
+            socket.emit("profile_update", user);
+            alert("Perfil guardado ✅");
+        });
+    </script>
 </body>
 </html>
