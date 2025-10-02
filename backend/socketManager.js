@@ -1,32 +1,38 @@
-// /backend/websocket.js (o donde manejes el socket)
+// /backend/websocket.js (Lógica de Manejo de Conexiones)
 const userService = require('./services/userService');
 
+// Suponiendo que esta es la función principal que maneja los mensajes entrantes
 ws.on('message', async (message) => {
-    const data = JSON.parse(message);
+    try {
+        const data = JSON.parse(message);
 
-    if (data.type === 'join') {
-        const { username } = data.data; 
-        
-        // 1. Autenticar usando el servicio
-        const authResult = await userService.authenticateUser(username);
-
-        if (authResult.success) {
-            // 2. Guardar el usuario en la sesión del socket (CRÍTICO)
-            ws.user = authResult.user; 
-
-            // 3. Enviar la respuesta de éxito al Frontend
-            ws.send(JSON.stringify({
-                type: 'auth_success',
-                chatname: authResult.user.chatname,
-                rank: authResult.user.rank
-            }));
+        if (data.type === 'join') {
+            const { username } = data.data; 
             
-            // ¡ESTO DESENCADENA LA REDIRECCIÓN EN EL FRONTEND!
+            // Llama al servicio que ya no usa contraseña
+            const authResult = await userService.authenticateUser(username);
 
-        } else {
-            // Enviar error
-            ws.send(JSON.stringify({ type: 'auth_error', message: 'Fallo al autenticar.' }));
-        }
-    } 
-    // ... (el resto de la lógica de chat_message, rejoin, etc.)
+            if (authResult.success) {
+                // 1. Guardar la sesión en el socket (vital para el chat)
+                ws.user = authResult.user; 
+
+                // 2. ENVIAR LA SEÑAL DE ÉXITO (CRÍTICO)
+                ws.send(JSON.stringify({
+                    type: 'auth_success',
+                    chatname: authResult.user.chatname,
+                    rank: authResult.user.rank
+                }));
+                
+                // NOTA: No cierres el socket aquí. La redirección lo cerrará del lado del cliente.
+                console.log(`[AUTH OK] Usuario ${username} autenticado. Señal enviada.`);
+
+            } else {
+                // Enviar error
+                ws.send(JSON.stringify({ type: 'auth_error', message: 'Fallo al encontrar/crear usuario.' }));
+            }
+        } 
+        // ... (El resto de la lógica para 'chat_message', 'rejoin', etc.)
+    } catch (e) {
+        console.error("Error al parsear mensaje WS:", e);
+    }
 });
