@@ -14,14 +14,14 @@
     </div>
 
     <script>
-        // --- Lógica del Tema Automático (Propuesta 4) ---
+        // --- Lógica del Tema Automático ---
         if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
             document.body.classList.add('dark');
         } else {
             document.body.classList.add('light');
         }
         
-        // --- Lógica de Login (copiada de la versión anterior) ---
+        // --- Lógica de Login ---
         const inputUsuario = document.getElementById("usuario");
         const inputPassword = document.getElementById("password");
         const mensaje = document.getElementById("mensaje");
@@ -56,10 +56,11 @@
                     mensaje.textContent = `✔ ¡Bienvenido ${data.user.nombre}! Entrando...`;
                     mensaje.style.color = "lightgreen";
                     
+                    // CRÍTICO: Redirecciona al nuevo archivo principal (index.html)
                     localStorage.setItem("userProfile", JSON.stringify(data.user)); 
                     
                     setTimeout(() => {
-                        window.location.href = "chat.html";
+                        window.location.href = "index.html"; 
                     }, 500);
                 } else {
                     mensaje.textContent = "❌ Usuario o contraseña incorrecta.";
@@ -72,9 +73,11 @@
             }
         }
         
+        // Login Automático al escribir
         function handleInput() {
             clearTimeout(timer);
             if (inputUsuario.value.trim().length > 0 && inputPassword.value.trim().length > 0) {
+                // Pequeña espera para evitar enviar peticiones por cada tecla
                 timer = setTimeout(verificarUsuario, 600); 
             }
         }
@@ -82,6 +85,7 @@
         inputUsuario.addEventListener("input", handleInput);
         inputPassword.addEventListener("input", handleInput);
         
+        // Login Inmediato al presionar Enter
         inputPassword.addEventListener("keypress", (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
