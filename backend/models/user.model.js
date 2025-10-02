@@ -1,11 +1,10 @@
-const mongoose = require('mongoose');
-
+// ... (imports)
 const UserProfileSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
-    chatname: String,
+    passwordHash: { type: String, required: true }, // <-- CLAVE DE SEGURIDAD
+    chatname: String, // Persiste el nombre de chat
     rank: { type: String, default: 'Miembro' },
     avatarUrl: String,
-    lastActive: { type: Date, default: Date.now } // Nuevo: Para saber si está inactivo
+    lastActive: { type: Date, default: Date.now }
 });
-
-module.exports = mongoose.model('UserProfile', UserProfileSchema);
+// ... (export)
