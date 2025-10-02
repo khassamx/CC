@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>Mi Perfil de Usuario</title>
   <style>
-    /* Estilos base (puedes mover esto a perfil.css) */
     body { font-family: Arial, sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; background:#1a1a1a; color:white; }
     .perfil-container { background:#222; padding:30px; border-radius:10px; max-width:400px; width:90%; text-align:center; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); }
     .foto-perfil img { width:100px; height:100px; border-radius:50%; object-fit:cover; margin-bottom:15px; border: 3px solid #00f; }
@@ -41,15 +40,12 @@
     const fotoInput = document.getElementById("subirFoto");
     const fotoImg = document.getElementById("foto");
     const guardarBtn = document.getElementById("guardar");
-    const socket = io(); // Conexión Socket.io
+    const socket = io(); 
 
     let perfil = JSON.parse(localStorage.getItem("perfilUsuario"));
 
-    // --- Verificación de Perfil ---
-    // Si no hay perfil guardado, redirigir al login por seguridad
     if(!perfil) window.location.href = "login.html";
 
-    // Cargar perfil en la UI
     fotoImg.src = perfil.foto;
     document.getElementById("usuario").textContent = perfil.usuario;
     document.getElementById("nombre").value = perfil.nombre;
@@ -59,7 +55,6 @@
     // Función para subir la foto al servidor (FETCH API - Óptimo)
     async function uploadPhoto(file){
         const formData = new FormData();
-        // 'profilePhoto' debe coincidir con el nombre esperado por Multer en server.js
         formData.append('profilePhoto', file); 
         
         try {
@@ -70,7 +65,7 @@
             const data = await response.json();
             
             if (data.success) {
-                return data.url; // Devuelve la URL pública del archivo
+                return data.url; 
             } else {
                 alert('Error al subir la foto: ' + (data.message || 'Desconocido'));
                 return perfil.foto;
@@ -82,26 +77,21 @@
         }
     }
 
-    // Evento al seleccionar una nueva foto
     fotoInput.addEventListener("change", async (e)=>{
       const file = e.target.files[0];
       if(file){
-        const newUrl = await uploadPhoto(file); // Subir la foto y obtener la URL
-        fotoImg.src = newUrl; // Mostrar la nueva foto
+        const newUrl = await uploadPhoto(file); 
+        fotoImg.src = newUrl; 
       }
     });
 
-    // Guardar cambios y notificar al chat
     guardarBtn.addEventListener("click", ()=>{
-      // 1. Actualizar el objeto local
       perfil.nombre = document.getElementById("nombre").value;
-      perfil.foto = fotoImg.src; // La URL pública de la foto
+      perfil.foto = fotoImg.src; 
       
-      // 2. Guardar en LocalStorage para persistencia
       localStorage.setItem("perfilUsuario", JSON.stringify(perfil));
       
-      // 3. Notificar al servidor de Socket.io para tiempo real
-      // Esto actualiza la lista de usuarios y el nombre/foto en la UI de todos
+      // Notificar al servidor de Socket.io
       socket.emit("profile_update", perfil);
       
       alert("Perfil guardado y notificado al chat ✅");
