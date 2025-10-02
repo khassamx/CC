@@ -1,125 +1,92 @@
-// server.js - Versión 2.0 (Socket.io Avanzado)
+// server.js - Chat Real con Socket.io
 
 const express = require("express");
 const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http);
-const path = require("path"); // Necesario para rutas estáticas
+const path = require("path");
+
 const PORT = 3000;
 
-// Almacén central de usuarios (temporal, se actualizará al conectar/desconectar)
+// Almacén de usuarios (para lista y rangos)
 const connectedUsers = {}; 
 
 // Servir archivos estáticos (login.html, chat.html, css, js)
-app.use(express.static(path.join(__dirname, 'public'))); // Usaremos una carpeta 'public' para buena práctica
+app.use(express.static(path.join(__dirname, 'public'))); 
 
-// CRÍTICO: Servir el archivo principal de la SPA (login.html)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
-
-// Lógica de Socket.io
+// --------------------------------------------------
+// Lógica de Socket.io (Manejo de tiempo real, comandos, etc.)
+// --------------------------------------------------
 io.on("connection", (socket) => {
     
-    let currentUser; // Para rastrear al usuario en esta conexión
+    let currentUser; 
 
-    // 1. Manejo de JOINS (El cliente se une y envía sus datos)
+    // 1. Manejo de JOINS (Cuando el cliente se conecta y envía sus datos de URL)
     socket.on("join", (userData) => {
         currentUser = { id: socket.id, usuario: userData.usuario, rango: userData.rango };
         connectedUsers[socket.id] = currentUser;
 
         console.log(`[JOIN] ${currentUser.usuario} (${currentUser.rango}) conectado.`);
         
-        // Notificar a todos sobre el nuevo usuario
         socket.broadcast.emit("server_message", { 
-            texto: `${currentUser.usuario} se ha unido al chat.`, 
+            texto: `${currentUser.usuario} se ha unido.`, 
             tipo: 'status' 
         });
         
-        // Enviar la lista actualizada a todos
         io.emit("update_users", Object.values(connectedUsers));
     });
 
-    // 2. Manejo de MENSAJES y COMANDOS
+    // 2. Manejo de MENSAJES (Texto, Comandos, Media)
     socket.on("mensaje", (data) => {
-        const { texto } = data;
         const remitente = connectedUsers[socket.id];
-        
-        if (!remitente) return; // Si no está en la lista, ignorar
+        if (!remitente) return;
 
-        if (texto.startsWith('/')) {
-            // Lógica de comandos
-            handleCommand(remitente, texto, io);
+        if (data.texto.startsWith('/')) {
+            // Aquí iría la lógica de comandos por rango
+            handleCommand(remitente, data.texto, io);
         } else {
-            // Reenvía el mensaje estándar a todos
+            // Emite el mensaje real
             io.emit("mensaje", { 
                 usuario: remitente.usuario, 
                 rango: remitente.rango, 
-                texto: texto, 
-                tipo: 'text' 
+                texto: data.texto, 
+                tipo: data.tipo || 'text', // Soporte para 'text', 'media'
+                url: data.url,
+                mimeType: data.mimeType
             });
         }
     });
-    
-    // 3. Manejo de ESCRITURA
-    socket.on("typing", (isTyping) => {
-        if (currentUser) {
-            socket.broadcast.emit("typing", { usuario: currentUser.usuario, isTyping });
-        }
-    });
 
-    // 4. Desconexión
+    // 3. Desconexión
     socket.on("disconnect", () => {
         if (currentUser) {
             delete connectedUsers[socket.id];
-            
-            console.log(`[DISCONNECT] ${currentUser.usuario} desconectado.`);
-
-            // Notificar a todos
             socket.broadcast.emit("server_message", { 
-                texto: `${currentUser.usuario} ha abandonado el chat.`, 
+                texto: `${currentUser.usuario} ha abandonado.`, 
                 tipo: 'status' 
             });
-            
-            // Enviar la lista actualizada a todos
             io.emit("update_users", Object.values(connectedUsers));
         }
     });
 });
 
-// Lógica de Comandos (muy básica)
+// Función básica de ejemplo para comandos
 function handleCommand(user, fullCommand, io) {
-    const parts = fullCommand.slice(1).split(' ');
-    const command = parts[0].toLowerCase();
-    const target = parts[1]; // Posible objetivo del comando
-    
-    let responseText = '';
+    const isAdmin = user.rango === 'Fundador' || user.rango === 'Líder';
+    let responseText = `Comando '${fullCommand}' no reconocido.`;
 
-    if (command === 'help') {
-        responseText = `Comandos disponibles: /help, /me. Comandos Admin (Líderes): /ban, /mute.`;
-    } 
-    else if (user.rango === 'Fundador' || user.rango === 'Líder') {
-        // Comandos solo para Líderes
-        if (command === 'ban' && target) {
-            responseText = `[ADMIN] El usuario ${target} ha sido baneado. (Lógica no implementada)`;
-        } else if (command === 'mute' && target) {
-            responseText = `[ADMIN] El usuario ${target} ha sido silenciado. (Lógica no implementada)`;
-        } else {
-            responseText = `Comando de Admin no reconocido o incompleto.`;
-        }
-    } else {
-        // Comando no permitido o no encontrado
-        responseText = `Comando '${command}' no reconocido o no tienes permiso.`;
+    if (fullCommand.startsWith('/ban') && isAdmin) {
+        responseText = `[ADMIN] ${user.usuario} ha ejecutado BAN.`;
+    } else if (fullCommand.startsWith('/help')) {
+        responseText = `Comandos: /help, /ban (si eres Líder).`;
     }
 
-    // Enviar respuesta de comando solo al usuario que lo ejecutó (privado)
     io.to(user.id).emit("server_message", { 
         texto: responseText, 
         tipo: 'system' 
     });
 }
-
+// --------------------------------------------------
 
 http.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
