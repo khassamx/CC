@@ -1,4 +1,4 @@
-// server.js (Ubicación: Carpeta backend/)
+// server.js (Ubicación: Carpeta backend/ o raíz, según tu estructura)
 
 const express = require("express");
 const fs = require("fs");
@@ -7,13 +7,16 @@ const { Server } = require("socket.io");
 const multer = require("multer");
 const path = require("path");
 
+// --- REQUIERE LA UTILIDAD DE RANGOS ---
+const { getRango } = require("./utils"); 
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 const PORT = 3000;
 
 // --- CONFIGURACIÓN BASE ---
-const rootDir = path.join(__dirname, '..'); // Directorio raíz del proyecto
+const rootDir = path.join(__dirname, '..'); // Asume que server.js está un nivel abajo del root.
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -21,35 +24,67 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(rootDir, 'public')));
 app.use('/uploads', express.static(path.join(rootDir, 'uploads')));
 
+// --- GESTIÓN DE ARCHIVOS (users.json) ---
+const usersDataPath = path.join(__dirname, 'users.json');
+
+function readUsers() {
+    try {
+        return JSON.parse(fs.readFileSync(usersDataPath, 'utf8'));
+    } catch (e) {
+        console.error("Error leyendo users.json:", e);
+        return {};
+    }
+}
+
+function writeUsers(users) {
+    try {
+        fs.writeFileSync(usersDataPath, JSON.stringify(users, null, 4), 'utf8');
+    } catch (e) {
+        console.error("Error escribiendo users.json:", e);
+    }
+}
+
 // --- ALMACÉN DE USUARIOS CONECTADOS ---
 const connectedUsers = {};
 
 // --- CONFIGURACIÓN SUBIDA DE ARCHIVOS (Multer) ---
 const storage = multer.diskStorage({
-    destination: path.join(rootDir, 'uploads'), // Ruta corregida
+    destination: path.join(rootDir, 'uploads'), 
     filename: (req, file, cb) => cb(null, Date.now() + "_" + file.originalname.toLowerCase().replace(/\s/g, '-'))
 });
 const upload = multer({ storage });
 
-// --- RUTA LOGIN CON CONTRASEÑA ---
+// --- RUTA LOGIN CON CÁLCULO DE RANGO ---
 app.post("/login", (req, res) => {
     const { usuario, password } = req.body;
-    const usersPath = path.join(__dirname, 'users.json'); // Ruta corregida
-    const users = JSON.parse(fs.readFileSync(usersPath, 'utf8'));
+    const users = readUsers();
     
-    // CRÍTICO: Convertir el usuario a minúsculas para coincidir con users.json
+    // CRÍTICO: Convertir a minúsculas para buscar en la base de datos
     const userKey = usuario.toLowerCase(); 
 
     if(users[userKey] && users[userKey].password === password){
-        const userProfile = { ...users[userKey], usuario: userKey }; // Guardamos la clave en el perfil
-        res.json({ ok: true, user: userProfile });
+        let userProfile = users[userKey];
+
+        // Inicializar contador de mensajes si no existe
+        if (typeof userProfile.mensajes !== 'number') {
+            userProfile.mensajes = 0;
+            writeUsers(users); 
+        }
+        
+        // CRÍTICO: Calcular y agregar la información del rango
+        const rangoInfo = getRango(userProfile.mensajes);
+        userProfile.rango = rangoInfo.nombre; 
+        userProfile.rangoCss = rangoInfo.cssClass; 
+        userProfile.nivel = rangoInfo.nivel; // Nivel numérico (opcional, pero útil)
+
+        // Se envía el perfil completo, incluyendo el rango y la clase CSS
+        res.json({ ok: true, user: { ...userProfile, usuario: userKey } });
     } else {
         res.status(401).json({ ok: false, message: "Usuario o contraseña incorrecta." });
     }
 });
 
 // --- RUTA SUBIR FOTO/VIDEO ---
-// El campo debe ser 'media', no 'archivo', para soportar la lógica del frontend.
 app.post("/upload", upload.single("media"), (req,res) => {
     if (req.file) {
         const filePath = "/uploads/" + req.file.filename;
@@ -59,29 +94,62 @@ app.post("/upload", upload.single("media"), (req,res) => {
     }
 });
 
-// --- SOCKET.IO (Lógica del Chat) ---
+// --- SOCKET.IO (Lógica del Chat con Rangos) ---
 io.on("connection", socket => {
     let currentUserID;
 
-    // JOIN: Se ejecuta al entrar al chat.html o index.html
+    // JOIN: Se ejecuta al entrar al chat
     socket.on("join", (perfil) => {
         currentUserID = perfil.id;
+        
+        // Asegura que el perfil tenga los campos de rango, incluso si no los trae del login (caso de reconexión)
+        if (!perfil.rango) {
+             const users = readUsers();
+             const userKey = perfil.usuario.toLowerCase();
+             if (users[userKey]) {
+                const rangoInfo = getRango(users[userKey].mensajes || 0);
+                perfil.rango = rangoInfo.nombre;
+                perfil.rangoCss = rangoInfo.cssClass;
+             }
+        }
+        
         connectedUsers[perfil.id] = { ...perfil, socketId: socket.id }; 
         
         socket.broadcast.emit("server_message", { texto: `${perfil.nombre} se ha unido.`, tipo: 'status' });
-        io.emit("update_users", Object.values(connectedUsers)); // Actualiza lista de usuarios
+        io.emit("update_users", Object.values(connectedUsers)); 
     });
 
     // MENSAJE GLOBAL
     socket.on("mensajeGlobal", (data) => {
+        // 1. Aumentar el contador y actualizar el JSON
+        const users = readUsers();
+        const userKey = connectedUsers[data.id].usuario; 
+        
+        if (users[userKey]) {
+            users[userKey].mensajes = (users[userKey].mensajes || 0) + 1;
+            writeUsers(users);
+            
+            // 2. Recalcular el rango y actualizar el objeto conectado
+            const rangoInfo = getRango(users[userKey].mensajes);
+            connectedUsers[data.id].rango = rangoInfo.nombre;
+            connectedUsers[data.id].rangoCss = rangoInfo.cssClass; 
+            connectedUsers[data.id].nivel = rangoInfo.nivel;
+        }
+
         const remitente = connectedUsers[data.id];
         if (!remitente) return;
+        
+        // 3. Emitir mensaje con la información del rango y la clase CSS
         io.emit("mensajeGlobal", { 
             ...data, 
             nombre: remitente.nombre, 
-            rango: remitente.rango, 
+            rango: remitente.rango,
+            rangoCss: remitente.rangoCss, // CRÍTICO: Envía la clase CSS para el frontend
             foto: remitente.foto 
         });
+
+        // Opcional: Re-emitir la lista de usuarios si el rango cambió
+        io.emit("update_users", Object.values(connectedUsers));
     });
 
     // MENSAJE PRIVADO
@@ -89,14 +157,27 @@ io.on("connection", socket => {
         const remitente = connectedUsers[data.id];
         if (!remitente) return;
         
-        // Busca al usuario por el campo 'usuario' (que es la clave en minúsculas)
         const targetUser = Object.values(connectedUsers).find(u => u.usuario === data.destino);
         
         if (targetUser) {
             // Enviar al destinatario
-            io.to(targetUser.socketId).emit("mensajePrivado", { ...data, nombre: remitente.nombre, foto: remitente.foto, isSender: false });
+            io.to(targetUser.socketId).emit("mensajePrivado", { 
+                ...data, 
+                nombre: remitente.nombre, 
+                foto: remitente.foto, 
+                rango: remitente.rango,
+                rangoCss: remitente.rangoCss,
+                isSender: false 
+            });
             // Enviar al remitente como confirmación
-            io.to(remitente.socketId).emit("mensajePrivado", { ...data, nombre: remitente.nombre, foto: remitente.foto, isSender: true });
+            io.to(remitente.socketId).emit("mensajePrivado", { 
+                ...data, 
+                nombre: remitente.nombre, 
+                foto: remitente.foto, 
+                rango: remitente.rango,
+                rangoCss: remitente.rangoCss,
+                isSender: true 
+            });
         } else {
             io.to(remitente.socketId).emit("server_message", { 
                 texto: `El usuario @${data.destino} no está conectado.`, 
@@ -105,11 +186,25 @@ io.on("connection", socket => {
         }
     });
 
-    // ACTUALIZACIÓN DE PERFIL (Para subir la foto o cambiar el nombre)
+    // ACTUALIZACIÓN DE PERFIL
     socket.on("profile_update", (updatedPerfil) => {
         if (connectedUsers[updatedPerfil.id]) {
-            connectedUsers[updatedPerfil.id] = { ...connectedUsers[updatedPerfil.id], ...updatedPerfil };
-            // Actualizamos la sesión para que los demás vean la nueva foto/nombre
+            // Actualiza solo los campos permitidos y mantiene los campos de Socket.io
+            connectedUsers[updatedPerfil.id] = { 
+                ...connectedUsers[updatedPerfil.id], 
+                nombre: updatedPerfil.nombre, // Solo actualizamos nombre y foto
+                foto: updatedPerfil.foto 
+            };
+            
+            // Re-escribe el JSON de usuarios con los nuevos datos
+            const users = readUsers();
+            const userKey = connectedUsers[updatedPerfil.id].usuario;
+            if (users[userKey]) {
+                users[userKey].nombre = updatedPerfil.nombre;
+                users[userKey].foto = updatedPerfil.foto;
+                writeUsers(users);
+            }
+            
             io.emit("update_users", Object.values(connectedUsers)); 
             io.emit("server_message", { texto: `${updatedPerfil.nombre} actualizó su perfil.`, tipo: 'status' });
         }
