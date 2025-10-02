@@ -1,47 +1,36 @@
+// /backend/services/userService.js (Modo SIN SEGURIDAD - SOLO PRUEBAS)
+
 const UserProfile = require('../models/user.model');
-const bcrypt = require('bcryptjs'); // Usando bcryptjs
-const SALT_ROUNDS = 10; 
+// NO necesitamos bcryptjs
 
-// --- CONFIGURACIÓN DE LÍDER ---
-const FIRST_USER = { username: 'Oliver', initialPass: '1283', rank: 'Líder' };
-// -----------------------------
+// Configuración del líder
+const FIRST_USER = { username: 'Oliver', rank: 'Líder' };
 
-exports.authenticateUser = async (username, password) => {
+exports.authenticateUser = async (username) => {
     let user = await UserProfile.findOne({ username });
 
     if (!user) {
         // 1. REGISTRO
-        const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-        
-        // ⬅️ LÓGICA DE PRIMER USUARIO (LÍDER)
         let initialRank = 'Miembro';
-        if (username === FIRST_USER.username && password === FIRST_USER.initialPass) {
-            // Si el primer usuario usa la credencial secreta
+        if (username === FIRST_USER.username) {
             initialRank = FIRST_USER.rank;
         }
 
         user = new UserProfile({ 
             username: username,
             chatname: username,
-            passwordHash: passwordHash,
-            rank: initialRank // Asigna el rango aquí
+            passwordHash: 'no_pass', // Guardamos un valor dummy
+            rank: initialRank 
         });
         await user.save();
         
         return { success: true, user: user };
         
     } else {
-        // 2. LOGIN
-        const isMatch = await bcrypt.compare(password, user.passwordHash);
-        
-        if (isMatch) {
-            user.lastActive = Date.now();
-            await user.save();
-            return { success: true, user: user };
-        } else {
-            return { success: false, message: 'Contraseña incorrecta.' };
-        }
+        // 2. LOGIN (Siempre exitoso si el usuario existe)
+        user.lastActive = Date.now();
+        await user.save();
+        return { success: true, user: user };
     }
 };
-
 // ... (otras funciones)
