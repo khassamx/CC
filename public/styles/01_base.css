@@ -1,77 +1,87 @@
 /* ==================================== */
-/* 03_components.css - VERSIÓN HACKER */
+/* 01_base.css / 03_components.css */
+/* Estilos para la interfaz de Terminal */
 /* ==================================== */
 
-/* Fuente de Terminal */
+/* 1. Base del cuerpo: Fondo negro y fuente monospace neón */
 body {
     background-color: #000000;
     color: #00ff41; /* Verde Neón Principal */
     font-family: 'Consolas', 'Courier New', monospace;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center; /* Centrado horizontal */
+    align-items: center; /* Centrado vertical */
+    min-height: 100vh; /* Ocupa toda la altura de la vista */
 }
 
-/* Contenedor del Login */
+/* 2. Contenedor del Login */
 #login-container {
-    background: transparent; /* Fondo transparente */
-    border: 2px solid #00ff41; /* Borde verde neón */
-    box-shadow: 0 0 10px #00ff41; /* Efecto de brillo de monitor */
-    padding: 30px;
-    max-width: 400px;
-    margin: 100px auto 0;
-}
-
-#login-container h2 {
-    color: #00cc33;
-    text-align: left;
-    margin-bottom: 25px;
-    font-size: 1.5em;
-    text-shadow: 0 0 5px #00ff41; /* Sutil brillo en el título */
-}
-
-/* Estilos de los Inputs y Select */
-#login-container input[type="text"],
-#login-container input[type="url"],
-#login-container select {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 15px;
     background: transparent;
-    border: 1px solid #005511; /* Borde sutil */
-    border-bottom: 2px solid #00ff41; /* Subrayado que simula la entrada */
+    border: 2px solid #00ff41; /* Borde verde neón */
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.7); /* Efecto de brillo retro de monitor */
+    padding: 30px;
+    width: 100%;
+    max-width: 380px; /* Tamaño fijo */
+    animation: flicker 1s infinite alternate; /* Animación sutil de parpadeo */
+}
+
+@keyframes flicker {
+    0% { opacity: 1; }
+    100% { opacity: 0.98; }
+}
+
+/* 3. Título */
+#login-container h2 {
     color: #00ff41;
-    font-size: 1em;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 1.8em;
+    text-shadow: 0 0 8px #00ff41; /* Brillo en el texto */
+    text-transform: uppercase;
+}
+
+/* 4. Estilos de los Inputs (Usuario y Contraseña) */
+#login-container input[type="text"],
+#login-container input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid #00ff41; /* Subrayado que simula la entrada del terminal */
+    color: #00ff41;
+    font-size: 1.1em;
     outline: none;
     box-shadow: none;
-    /* Eliminar el fondo oscuro predeterminado de los inputs en algunos navegadores */
+    transition: border-color 0.2s, box-shadow 0.2s;
     -webkit-appearance: none;
-}
-
-/* Placeholder (Texto de ayuda) */
-#login-container input::placeholder {
-    color: #008822; /* Texto más tenue */
-}
-
-/* Botón 'Entrar' */
-#login-button {
-    width: 100%;
-    padding: 10px;
-    background: #00ff41;
-    color: #000000; /* Texto negro sobre verde */
-    border: none;
-    cursor: pointer;
     font-family: 'Consolas', monospace;
-    font-weight: bold;
-    letter-spacing: 1px;
-    transition: background 0.2s, box-shadow 0.2s;
 }
 
-#login-button:hover {
-    background: #00cc33;
-    box-shadow: 0 0 15px #00ff41; /* Brillo al pasar el ratón */
+/* Foco en el input: simula el cursor activo */
+#login-container input:focus {
+    border-bottom-color: #33ff77;
+    box-shadow: 0 1px 5px #00ff41;
 }
 
-/* Estilo para la lista de usuarios (solo para consistencia visual) */
-#user-list {
-    border-left: 1px dashed #00ff41;
+/* Estilo del texto de ayuda (Placeholder) */
+#login-container input::placeholder {
+    color: #008822; /* Texto tenue */
+    opacity: 0.7;
 }
 
-/* Fin de Estilos Hacker */
+/* 5. Texto de Instrucción (Presiona ENTER) */
+#login-container p {
+    color: #00cc33;
+    text-align: center;
+    margin-top: 25px;
+    font-size: 0.9em;
+}
+
+/* 6. Formulario: Aseguramos que los inputs se muestren en línea */
+#login-form {
+    display: flex;
+    flex-direction: column;
+}
