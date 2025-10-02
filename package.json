@@ -1,0 +1,14 @@
+{
+  "name": "chat-con-rangos",
+  "version": "1.0.0",
+  "description": "Chat modularizado con persistencia.",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.0",
+    "ws": "^8.1.0"
+  }
+}
