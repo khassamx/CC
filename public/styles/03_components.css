@@ -1,0 +1,77 @@
+/* ==================================== */
+/* 03_components.css - VERSIÓN HACKER */
+/* ==================================== */
+
+/* Fuente de Terminal */
+body {
+    background-color: #000000;
+    color: #00ff41; /* Verde Neón Principal */
+    font-family: 'Consolas', 'Courier New', monospace;
+}
+
+/* Contenedor del Login */
+#login-container {
+    background: transparent; /* Fondo transparente */
+    border: 2px solid #00ff41; /* Borde verde neón */
+    box-shadow: 0 0 10px #00ff41; /* Efecto de brillo de monitor */
+    padding: 30px;
+    max-width: 400px;
+    margin: 100px auto 0;
+}
+
+#login-container h2 {
+    color: #00cc33;
+    text-align: left;
+    margin-bottom: 25px;
+    font-size: 1.5em;
+    text-shadow: 0 0 5px #00ff41; /* Sutil brillo en el título */
+}
+
+/* Estilos de los Inputs y Select */
+#login-container input[type="text"],
+#login-container input[type="url"],
+#login-container select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    background: transparent;
+    border: 1px solid #005511; /* Borde sutil */
+    border-bottom: 2px solid #00ff41; /* Subrayado que simula la entrada */
+    color: #00ff41;
+    font-size: 1em;
+    outline: none;
+    box-shadow: none;
+    /* Eliminar el fondo oscuro predeterminado de los inputs en algunos navegadores */
+    -webkit-appearance: none;
+}
+
+/* Placeholder (Texto de ayuda) */
+#login-container input::placeholder {
+    color: #008822; /* Texto más tenue */
+}
+
+/* Botón 'Entrar' */
+#login-button {
+    width: 100%;
+    padding: 10px;
+    background: #00ff41;
+    color: #000000; /* Texto negro sobre verde */
+    border: none;
+    cursor: pointer;
+    font-family: 'Consolas', monospace;
+    font-weight: bold;
+    letter-spacing: 1px;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+#login-button:hover {
+    background: #00cc33;
+    box-shadow: 0 0 15px #00ff41; /* Brillo al pasar el ratón */
+}
+
+/* Estilo para la lista de usuarios (solo para consistencia visual) */
+#user-list {
+    border-left: 1px dashed #00ff41;
+}
+
+/* Fin de Estilos Hacker */
