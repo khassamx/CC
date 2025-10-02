@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>Login de Acceso</title>
   <style>
-    /* Estilo Minimalista y Centrado */
     body { 
       font-family: Arial, sans-serif; 
       display:flex; 
@@ -37,7 +36,7 @@
     #mensaje { 
       margin-top:15px; 
       font-weight: bold;
-      height: 20px; /* Para evitar saltos al cambiar texto */
+      height: 20px; 
     }
   </style>
 </head>
@@ -49,45 +48,47 @@
   </div>
 
   <script>
-    // **Base de datos de usuarios y rangos (Local)**
-    // Los nombres son las claves de ingreso (flexibles a mayúsculas/minúsculas)
     const usuarios = {
-      "oliver": "Fundador",
-      "aye_russu": "Líder",
-      "atlas": "Colíder",
-      "zoe": "Veterano",
-      "mili": "Miembro"
+      // Usamos el nombre y un ID fijo para que el servidor lo rastree
+      "oliver": {nombre:"Oliver Doldán", rango:"Fundador", id:"001", foto:"/uploads/default.png"},
+      "aye_russu": {nombre:"Aye Russu", rango:"Líder", id:"002", foto:"/uploads/default.png"},
+      "atlas": {nombre:"Atlas", rango:"Colíder", id:"003", foto:"/uploads/default.png"},
+      "zoe": {nombre:"Zoe", rango:"Veterano", id:"004", foto:"/uploads/default.png"},
+      "mili": {nombre:"Mili", rango:"Miembro", id:"005", foto:"/uploads/default.png"}
     };
 
     const inputUsuario = document.getElementById("usuario");
     const mensaje = document.getElementById("mensaje");
-    let isRedirecting = false; // Bandera para evitar doble redirección
+    let isRedirecting = false; 
 
     inputUsuario.addEventListener("input", () => {
-      // Normalizar el valor a minúsculas para la validación flexible
       const valor = inputUsuario.value.trim().toLowerCase();
 
-      if (isRedirecting) return; // Si ya estamos redirigiendo, ignorar
+      if (isRedirecting) return;
 
-      // Validar si el usuario existe en la lista
       if (usuarios[valor]) {
-        // Usuario correcto: asignar rango y preparar redirección
-        const rangoAsignado = usuarios[valor];
-        mensaje.textContent = `✔ Usuario válido: [${rangoAsignado}]. Entrando...`;
+        const userData = usuarios[valor];
+        
+        mensaje.textContent = `✔ Usuario válido: [${userData.rango}]. Entrando...`;
         mensaje.style.color = "lightgreen";
-        isRedirecting = true; // Activar bandera
+        isRedirecting = true;
+
+        // **CRÍTICO:** Guardar datos COMPLETOS en localStorage (se usarán en chat.html y perfil.html)
+        localStorage.setItem("perfilUsuario", JSON.stringify({
+            usuario: valor,
+            nombre: userData.nombre,
+            rango: userData.rango,
+            id: userData.id,
+            foto: localStorage.getItem("perfilUsuario") ? JSON.parse(localStorage.getItem("perfilUsuario")).foto : userData.foto // Mantener foto si ya existe
+        }));
 
         setTimeout(() => {
-          // Redirección CRÍTICA a chat.html, pasando usuario y rango por URL
-          const url = `chat.html?usuario=${encodeURIComponent(valor)}&rango=${encodeURIComponent(rangoAsignado)}`;
-          window.location.href = url;
-        }, 800); // Pequeña pausa de 0.8 segundos para mostrar el mensaje
+          window.location.href = "chat.html";
+        }, 800);
       } else if (valor.length > 0) {
-        // Usuario incorrecto y el campo no está vacío
         mensaje.textContent = "❌ Usuario incorrecto. Intenta de nuevo.";
         mensaje.style.color = "red";
       } else {
-        // Campo vacío
         mensaje.textContent = "Escribe tu usuario para validar el acceso...";
         mensaje.style.color = "white";
       }
