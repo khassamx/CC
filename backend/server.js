@@ -1,101 +1,117 @@
-// server.js - Versión FINAL con Perfiles y Multimedia
+// server.js - Versión FINAL con Perfiles, Multer (Multimedia) y Socket.io
 
 const express = require("express");
-const http = require("http").createServer(app);
-const io = require("socket.io")(http);
+const http = require("http");
+const socketio = require("socket.io");
 const path = require("path");
-const multer = require("multer"); // Para manejo eficiente de archivos
+const multer = require("multer"); // Para manejo eficiente de archivos binarios
 
-const app = express();
-const PORT = 3000;
+// --- Configuración Inicial y Puerto ---
+// 1. Inicializa 'app' (Instancia de Express) PRIMERO
+const app = express(); 
+// 2. Ahora sí puedes usar 'app' para crear el servidor HTTP
+const server = http.createServer(app); 
+// 3. Inicializa Socket.io usando el servidor HTTP
+const io = socketio(server);
 
-// --- Configuración de Multer para guardar archivos ---
+const PORT = process.env.PORT || 3000;
+
+// --- 1. Configuración de Multer para Subida de Fotos ---
+// Almacenamiento en disco para las fotos de perfil
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        // Guardar archivos en la carpeta 'uploads' (debe existir en la raíz del proyecto)
-        cb(null, path.join(__dirname, 'uploads')); 
+        // La carpeta 'uploads' DEBE existir en la raíz del proyecto
+        cb(null, path.join(__dirname, '..', 'uploads')); 
     },
     filename: (req, file, cb) => {
-        // Nombre del archivo basado en hora actual para evitar duplicados
-        cb(null, Date.now() + '-' + file.originalname);
+        // Nombre de archivo único (timestamp + nombre original)
+        cb(null, Date.now() + '-' + file.originalname.toLowerCase().split(' ').join('-'));
     }
 });
 const upload = multer({ storage: storage });
 
-// Almacén central de usuarios (temporal)
+// --- 2. Almacén Central de Usuarios Conectados ---
+// Almacena el perfil completo, indexado por el ID ÚNICO (no el socket.id volátil)
 const connectedUsers = {}; 
 
-// Servir archivos estáticos y la carpeta de subidas
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Ruta para acceder a las fotos
+// --- 3. Middlewares de Express y Archivos Estáticos ---
+// Sirve la carpeta 'public' (login.html, chat.html, perfil.html)
+app.use(express.static(path.join(__dirname, '..', 'public')));
+// Sirve la carpeta 'uploads' para que las fotos sean accesibles por URL
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads'))); 
 
-// Ruta de Subida de Perfil (Usada por perfil.html)
+// Middleware para redirigir al login si se accede a la raíz y no hay sesión/datos (simulado con el login.html)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
+});
+
+
+// --- 4. Ruta de API REST para Subida de Fotos (FETCH API) ---
+// Punto clave de optimización: Multer maneja el binario de forma eficiente.
 app.post('/upload-photo', upload.single('profilePhoto'), (req, res) => {
     if (req.file) {
-        // Devolver la URL pública del archivo
+        // Devolver la URL pública del archivo: /uploads/nombre-del-archivo.jpg
         const fileUrl = `/uploads/${req.file.filename}`;
         res.json({ success: true, url: fileUrl });
     } else {
-        res.status(400).json({ success: false, message: "No se subió el archivo." });
+        res.status(400).json({ success: false, message: "No se subió el archivo o el campo es incorrecto." });
     }
 });
 
+
 // --------------------------------------------------
-// Lógica de Socket.io (Manejo de tiempo real, comandos, etc.)
+// 5. Lógica de Socket.io (Tiempo Real)
 // --------------------------------------------------
 io.on("connection", (socket) => {
     
-    let currentUserID; // Usaremos el ID único para rastrear
+    let currentUserID; // El ID de perfil único (ej: "001")
 
-    // 1. Manejo de JOINS (El cliente se une con sus datos de perfil)
+    // --- JOINS: El cliente envía su perfil completo desde localStorage ---
     socket.on("join", (perfil) => {
         currentUserID = perfil.id;
-        connectedUsers[perfil.id] = { ...perfil, id: socket.id }; // Guardar datos de perfil y socket.id
+        
+        // Asocia el socket.id actual con el ID de perfil único
+        connectedUsers[perfil.id] = { ...perfil, socketId: socket.id }; 
 
+        console.log(`[JOIN] ${perfil.nombre} (${perfil.rango}) conectado. ID: ${currentUserID}`);
+        
+        // Mensaje de estado al resto
         socket.broadcast.emit("server_message", { 
-            texto: `${perfil.nombre} [${perfil.rango}] se ha unido.`, 
+            texto: `${perfil.nombre} se ha unido al chat.`, 
             tipo: 'status' 
         });
         
-        io.emit("update_users", Object.values(connectedUsers).map(u => ({
-             usuario: u.usuario, 
-             nombre: u.nombre, 
-             rango: u.rango, 
-             foto: u.foto // Enviar la foto para la lista de usuarios
-        })));
+        // Actualiza la lista de usuarios para todos
+        io.emit("update_users", Object.values(connectedUsers));
     });
 
-    // 2. Actualización de Perfil (Al guardar en perfil.html)
+    // --- PROFILE UPDATE: El usuario guardó cambios en perfil.html ---
     socket.on("profile_update", (updatedPerfil) => {
         if (connectedUsers[updatedPerfil.id]) {
-            // Actualizar el objeto de usuario en el servidor
+            // Actualizar el perfil en el almacén del servidor
             connectedUsers[updatedPerfil.id] = { 
                 ...connectedUsers[updatedPerfil.id], 
                 ...updatedPerfil 
             };
             
-            // Notificar a todos que el perfil se actualizó (para que refresquen la lista)
+            // Notificar a todos sobre la actualización del perfil
             io.emit("server_message", { 
                 texto: `${updatedPerfil.nombre} ha actualizado su perfil.`, 
                 tipo: 'status' 
             });
             
-            io.emit("update_users", Object.values(connectedUsers).map(u => ({
-                usuario: u.usuario, 
-                nombre: u.nombre, 
-                rango: u.rango, 
-                foto: u.foto
-            })));
+            // Reenviar la lista actualizada de usuarios
+            io.emit("update_users", Object.values(connectedUsers));
         }
     });
 
-    // 3. Manejo de MENSAJES (Texto y Comandos)
+    // --- MENSAJES ---
     socket.on("mensaje", (data) => {
         const remitente = connectedUsers[currentUserID];
-        if (!remitente) return;
+        if (!remitente) return; // Si no hay remitente válido, ignorar
 
         if (data.texto.startsWith('/')) {
-            // Lógica de comandos aquí
+            // Manejo de comandos por rango
             handleCommand(remitente, data.texto, io, socket.id);
         } else {
             // Reenvía el mensaje estándar a todos
@@ -103,13 +119,13 @@ io.on("connection", (socket) => {
                 nombre: remitente.nombre, 
                 rango: remitente.rango, 
                 texto: data.texto, 
-                foto: remitente.foto, // Enviar la foto actual
+                foto: remitente.foto, 
                 tipo: 'text' 
             });
         }
     });
 
-    // 4. Desconexión
+    // --- DESCONEXIÓN ---
     socket.on("disconnect", () => {
         if (currentUserID && connectedUsers[currentUserID]) {
             const desconectado = connectedUsers[currentUserID];
@@ -119,33 +135,41 @@ io.on("connection", (socket) => {
                 texto: `${desconectado.nombre} ha abandonado.`, 
                 tipo: 'status' 
             });
-            io.emit("update_users", Object.values(connectedUsers).map(u => ({
-                usuario: u.usuario, 
-                nombre: u.nombre, 
-                rango: u.rango, 
-                foto: u.foto
-            })));
+            // Reenviar lista sin el usuario desconectado
+            io.emit("update_users", Object.values(connectedUsers));
         }
     });
 });
 
-// Lógica de Comandos (mantenida simple)
+
+// --- Lógica de Comandos (Implementación Simple) ---
 function handleCommand(user, fullCommand, io, socketId) {
     const isAdmin = user.rango === 'Fundador' || user.rango === 'Líder';
-    let responseText = `Comando '${fullCommand}' no reconocido o no tienes permiso.`;
+    let responseText = `Comando '${fullCommand.split(' ')[0]}' no reconocido o no tienes permiso.`;
 
     if (fullCommand.startsWith('/help')) {
-        responseText = `Comandos: /help, /admin (si eres Líder).`;
-    } else if (fullCommand.startsWith('/admin') && isAdmin) {
-        responseText = `[ADMIN] Acceso concedido, puedes usar /ban y /mute.`;
+        responseText = `Comandos disponibles: /help, /me. (Administración: /ban, /kick si eres Fundador/Líder).`;
+    } else if (fullCommand.startsWith('/me')) {
+        const action = fullCommand.substring(4).trim();
+        // Emite una acción a todos (ej: *Oliver Doldán está durmiendo*)
+        io.emit("server_message", { 
+            texto: `*${user.nombre} ${action}*`, 
+            tipo: 'system' 
+        });
+        return; // No enviar mensaje al usuario local
+    } else if ((fullCommand.startsWith('/ban') || fullCommand.startsWith('/kick')) && isAdmin) {
+        responseText = `[ADMIN - ${user.rango}] Ejecutando acción administrativa para: ${fullCommand.substring(5).trim() || 'usuario no especificado'}.`;
     }
 
+    // Envía la respuesta del sistema solo al usuario que ejecutó el comando
     io.to(socketId).emit("server_message", { 
         texto: responseText, 
         tipo: 'system' 
     });
 }
 
-http.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+
+// --- Arrancar el Servidor ---
+server.listen(PORT, () => {
+  console.log(`Servidor de Chat corriendo en http://localhost:${PORT}`);
 });
