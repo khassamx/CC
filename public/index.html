@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat System - Interactivo</title>
+    <link rel="stylesheet" href="app.css">
+</head>
+<body>
+    <div id="app-container">
+        
+        <div id="menu">
+            <button id="btn-global" data-target="chat-global">Chat Global</button>
+            <button id="btn-privado" data-target="chat-privado">Chat Privado</button>
+            <button id="btn-perfil" data-target="perfil">Perfil</button>
+            <button id="btn-subir" data-target="subir-archivos">Subir Archivo</button>
+            <button id="btn-tema" onclick="toggleTheme()">Tema Claro/Oscuro</button>
+        </div>
+
+        <div id="contenedor">
+            
+            <div id="chat-global" class="seccion chat-seccion">
+                <header><h3>Chat Global</h3></header>
+                <div id="mensajes-global" class="mensajes-box"></div>
+                </div>
+            
+            <div id="chat-privado" class="seccion chat-seccion" style="display:none;">
+                <header><h3>Chat Privado</h3></header>
+                <div id="user-list-private" class="user-list-box">
+                    <h4>Usuarios Conectados:</h4>
+                    <ul id="user-list"></ul>
+                </div>
+                <div id="mensajes-privado" class="mensajes-box"></div>
+                </div>
+            
+            <div id="perfil" class="seccion perfil-seccion" style="display:none;">
+                <h2>Mi Perfil</h2>
+                <img id="foto" src="" width="120" height="120" style="border-radius:50%; object-fit: cover;">
+                <input type="file" id="subirMediaPerfil" style="display:none;" accept="image/*,video/*">
+                <button onclick="document.getElementById('subirMediaPerfil').click()">Cambiar Foto/Video</button>
+                
+                <p>Nombre: <input type="text" id="nombre"></p>
+                <p>ID: <span id="id"></span></p>
+                <p>Rango: <span id="rango"></span></p>
+
+                <button id="guardarBtn">Guardar Cambios</button>
+            </div>
+            
+            <div id="subir-archivos" class="seccion" style="display:none;">
+                <h2>Subida de Archivos Multimedia</h2>
+                <input type="file" id="archivoInput" accept="image/*,video/*">
+                <button id="enviarArchivoBtn">Subir y Enviar al Chat Global</button>
+                <p id="upload-status"></p>
+            </div>
+        </div>
+        
+        <div id="chat-footer">
+            <input type="text" id="mensajeInput" placeholder="Escribe un mensaje o @usuario mensaje...">
+            <button id="enviarBtn">Enviar</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script> 
+    </body>
+</html>
