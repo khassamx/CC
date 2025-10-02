@@ -14,11 +14,11 @@
         
         <div id="login-view" class="view active">
             <div id="login-container">
-                <h2>Ingreso Optimizado</h2>
+                <h2>Ingreso al Chat</h2>
                 <form id="login-form"> 
-                    <input type="text" id="username" placeholder="Usuario..." required> 
-                    <p>Presiona ENTER para iniciar sesión automáticamente.</p>
-                </form>
+                    <input type="text" id="username" placeholder="Usuario/Clave..." required> 
+                    <p>Escribe tu usuario para iniciar sesión automáticamente (Mayús/Minús es flexible).</p>
+                    </form>
             </div>
         </div>
 
@@ -26,18 +26,22 @@
             <div id="navigation">
                 <a href="#chat" class="active" data-view="chat">💬 Chat</a>
                 <a href="#rank" data-view="rank">⭐ Ranking</a>
-                <a href="#profile" data-view="profile">👤 Perfil</a>
-            </div>
+                </div>
             
             <div id="main-chat">
-                <h3 id="chat-header">Conectado como...</h3>
-                <div id="chat-messages"></div>
+                <h3 id="chat-header">Bienvenido/a: <span id="user-alias"></span></h3>
+                <div id="chat-messages">
+                    </div>
+                
                 <div id="chat-input-area">
                     <form id="message-form">
-                        <input type="text" id="message-input" placeholder="Escribe un mensaje o comando...">
+                        <input type="file" id="media-upload" accept="image/*,video/*" style="display:none;">
+                        <button type="button" id="upload-button" title="Enviar Foto/Video">📷</button>
+                        <input type="text" id="message-input" placeholder="Escribe texto o /comando (ej: /ban usuario)...">
                     </form>
                 </div>
             </div>
+            
             <div id="sidebar">
                 <h4>Usuarios Conectados:</h4>
                 <ul id="user-list"></ul>
@@ -48,11 +52,9 @@
             <div id="navigation">
                 <a href="#chat" data-view="chat">💬 Chat</a>
                 <a href="#rank" class="active" data-view="rank">⭐ Ranking</a>
-                <a href="#profile" data-view="profile">👤 Perfil</a>
             </div>
             <h1>Clasificación de Usuarios</h1>
-            <ul id="rank-list">
-                </ul>
+            <ul id="rank-list"></ul>
         </div>
         
     </div>
