@@ -1,50 +1,44 @@
-// server.js (Ubicación: Carpeta Raíz)
+// server.js (Ubicación: Carpeta backend/)
 
 const express = require("express");
 const fs = require("fs");
 const http = require("http");
 const { Server } = require("socket.io");
-const path = require("path");
 const multer = require("multer");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 const PORT = 3000;
 
-// Middleware para parsear JSON (peticiones POST)
-app.use(express.json()); 
+// --- CONFIGURACIÓN BASE ---
+const rootDir = path.join(__dirname, '..'); // Directorio raíz del proyecto
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// --- CONFIGURACIÓN DE RUTAS Y MULTER (Archivos) ---
-// La carpeta raíz del proyecto es '..' porque server.js está en 'backend/'
-const rootDir = path.join(__dirname, '..');
 
 // Servir archivos estáticos: public/ y uploads/
 app.use(express.static(path.join(rootDir, 'public')));
 app.use('/uploads', express.static(path.join(rootDir, 'uploads')));
 
-// Configuración subida de archivos
+// --- ALMACÉN DE USUARIOS CONECTADOS ---
+const connectedUsers = {};
+
+// --- CONFIGURACIÓN SUBIDA DE ARCHIVOS (Multer) ---
 const storage = multer.diskStorage({
-    destination: path.join(rootDir, 'uploads'), // Guardar en la carpeta uploads/
+    destination: path.join(rootDir, 'uploads'), // Ruta corregida
     filename: (req, file, cb) => cb(null, Date.now() + "_" + file.originalname.toLowerCase().replace(/\s/g, '-'))
 });
 const upload = multer({ storage });
 
-// --- ALMACÉN DE USUARIOS CONECTADOS ---
-const connectedUsers = {};
-
-// --- LOGIN CON CONTRASEÑA (Ruta HTTP POST) ---
+// --- RUTA LOGIN CON CONTRASEÑA ---
 app.post("/login", (req, res) => {
     const { usuario, password } = req.body;
-    // CRÍTICO: Leer el users.json de la carpeta backend/
-    const usersPath = path.join(__dirname, 'users.json');
+    const usersPath = path.join(__dirname, 'users.json'); // Ruta corregida
     const users = JSON.parse(fs.readFileSync(usersPath, 'utf8'));
-
     const userKey = usuario.toLowerCase();
 
     if(users[userKey] && users[userKey].password === password){
-        // Usamos el perfil del JSON y agregamos la URL de la foto del JSON
         const userProfile = { ...users[userKey] }; 
         res.json({ ok: true, user: userProfile });
     } else {
@@ -52,10 +46,10 @@ app.post("/login", (req, res) => {
     }
 });
 
-// --- SUBIR FOTO/VIDEO (Ruta HTTP POST) ---
-app.post("/upload", upload.single("media"), (req, res) => {
-    if(req.file){
-        // Devolver la URL pública: /uploads/nombre-del-archivo
+// --- RUTA SUBIR FOTO/VIDEO ---
+// El campo debe ser 'media', no 'archivo', para soportar la lógica del frontend.
+app.post("/upload", upload.single("media"), (req,res) => {
+    if (req.file) {
         const filePath = "/uploads/" + req.file.filename;
         res.json({ ok: true, path: filePath, mime: req.file.mimetype });
     } else {
@@ -63,30 +57,20 @@ app.post("/upload", upload.single("media"), (req, res) => {
     }
 });
 
-// --- SOCKET.IO (Tiempo Real) ---
+// --- SOCKET.IO (Lógica del Chat) ---
 io.on("connection", socket => {
     let currentUserID;
 
-    // 1. JOIN (El cliente se conecta y envía su perfil de localStorage)
+    // JOIN: Se ejecuta al entrar al chat.html
     socket.on("join", (perfil) => {
         currentUserID = perfil.id;
-        connectedUsers[perfil.id] = { ...perfil, socketId: socket.id };
-        console.log(`[JOIN] ${perfil.nombre} (${socket.id})`);
+        connectedUsers[perfil.id] = { ...perfil, socketId: socket.id }; 
         
         socket.broadcast.emit("server_message", { texto: `${perfil.nombre} se ha unido.`, tipo: 'status' });
-        io.emit("update_users", Object.values(connectedUsers));
+        io.emit("update_users", Object.values(connectedUsers)); // Actualiza lista de usuarios
     });
 
-    // 2. ACTUALIZACIÓN DE PERFIL
-    socket.on("profile_update", (updatedPerfil) => {
-        if (connectedUsers[updatedPerfil.id]) {
-            connectedUsers[updatedPerfil.id] = { ...connectedUsers[updatedPerfil.id], ...updatedPerfil };
-            io.emit("update_users", Object.values(connectedUsers));
-            io.emit("server_message", { texto: `${updatedPerfil.nombre} actualizó su perfil.`, tipo: 'status' });
-        }
-    });
-
-    // 3. MENSAJES (Global y Privado)
+    // MENSAJE GLOBAL
     socket.on("mensajeGlobal", (data) => {
         const remitente = connectedUsers[data.id];
         if (!remitente) return;
@@ -98,27 +82,37 @@ io.on("connection", socket => {
         });
     });
 
+    // MENSAJE PRIVADO
     socket.on("mensajePrivado", (data) => {
         const remitente = connectedUsers[data.id];
         if (!remitente) return;
         
-        const targetSocket = Object.values(connectedUsers).find(u => u.usuario === data.destino)?.socketId;
+        const targetUser = Object.values(connectedUsers).find(u => u.usuario === data.destino);
         
-        if (targetSocket) {
+        if (targetUser) {
             // Enviar al destinatario
-            io.to(targetSocket).emit("mensajePrivado", { ...data, nombre: remitente.nombre, foto: remitente.foto });
+            io.to(targetUser.socketId).emit("mensajePrivado", { ...data, nombre: remitente.nombre, foto: remitente.foto, isSender: false });
             // Enviar al remitente como confirmación
             io.to(remitente.socketId).emit("mensajePrivado", { ...data, nombre: remitente.nombre, foto: remitente.foto, isSender: true });
         } else {
-            // Manejar error si el usuario no está conectado
             io.to(remitente.socketId).emit("server_message", { 
-                texto: `El usuario ${data.destino} no está conectado.`, 
+                texto: `El usuario @${data.destino} no está conectado.`, 
                 tipo: 'system' 
             });
         }
     });
 
-    // 4. DESCONEXIÓN
+    // ACTUALIZACIÓN DE PERFIL (Para subir la foto)
+    socket.on("profile_update", (updatedPerfil) => {
+        if (connectedUsers[updatedPerfil.id]) {
+            connectedUsers[updatedPerfil.id] = { ...connectedUsers[updatedPerfil.id], ...updatedPerfil };
+            io.emit("update_users", Object.values(connectedUsers));
+            io.emit("server_message", { texto: `${updatedPerfil.nombre} actualizó su perfil.`, tipo: 'status' });
+        }
+    });
+
+
+    // DESCONEXIÓN
     socket.on("disconnect", () => {
         const desconectado = Object.values(connectedUsers).find(u => u.socketId === socket.id);
         if (desconectado) {
@@ -129,4 +123,5 @@ io.on("connection", socket => {
     });
 });
 
+// --- INICIAR SERVIDOR ---
 server.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
