@@ -1,5 +1,5 @@
 const UserProfile = require('../models/user.model');
-const bcrypt = require('bcrypt'); // <--- ¡AQUÍ VA BCYPT!
+const bcrypt = require('bcryptjs'); // <--- ¡LA SOLUCIÓN FINAL!
 const SALT_ROUNDS = 10; 
 
 exports.authenticateUser = async (username, password) => {
