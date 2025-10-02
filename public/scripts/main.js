@@ -1,59 +1,50 @@
-// /public/scripts/main.js - El Orquestador Universal (Máxima Optimización)
+// /public/scripts/main.js - Router Universal y Orquestador
 
-// --- Módulos Esenciales ---
-// Siempre necesitamos utilidades y la lógica base de las páginas principales.
+// --- Módulos Esenciales (Deben existir) ---
 import { loadLocalData, saveLocalData } from './utils/localPersistence.js';
+import { handleLogin } from './components/appEvents.js'; 
 import { initSocket, sendMessage } from './services/websocketService.js';
-import { handleLogin } from './components/appEvents.js'; // Lógica principal de Login/Auth
-
-// --- Módulos Específicos (Carga bajo demanda) ---
-// Estas funciones se importan, pero solo se llaman si la URL coincide.
+// Módulos Específicos para el Ruteo (pueden ser archivos vacíos por ahora)
 import { initChatPage } from './components/chatEvents.js'; 
 import { initRankPage } from './components/rankEvents.js'; 
 import { initProfilePage } from './components/profileEvents.js';
 
-// --- Control de Estado Global ---
 let userData = loadLocalData();
 
 // ===============================================
-// LÓGICA DE INICIALIZACIÓN POR VISTA (Helpers)
+// LÓGICA DE LOGIN
 // ===============================================
-
-/**
- * Inicializa la página de Login (login.html).
- */
 function initializeLoginPage() {
     const loginForm = document.getElementById('login-form');
     const usernameInput = document.getElementById('username');
     
     if (!loginForm) return; 
-    console.log("[Router] Activando Lógica de LOGIN y Autenticación Rápida.");
+    console.log("[Router] Activando Lógica de Login Rápido.");
 
-    // Pre-llenar campos si hay datos locales (solo el usuario)
     if (userData && userData.username) {
         usernameInput.value = userData.username;
     }
 
-    // Capturar el evento SUBMIT (tecla ENTER) del formulario
+    // Listener de SUBMIT (Enter)
     loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); // ¡CRÍTICO! Evita que el navegador recargue.
+        e.preventDefault(); 
         
         if (loginForm.disabled) return; 
         loginForm.disabled = true;
 
-        // Inicia el proceso de conexión y autenticación (ahora sin contraseña en el frontend)
+        // Inicia el proceso de conexión. La contraseña es NULL.
         const success = await handleLogin(
             usernameInput.value, 
-            null, // La contraseña es ignorada en el modo de prueba del backend
+            null, // Contraseña se envía como null
             saveLocalData, 
             initSocket
         );
         
         loginForm.disabled = false;
 
+        // Si el backend responde con éxito (true), redirigimos.
         if (success) {
-            // Si el backend autentica (o registra), redirigimos
-            window.location.href = '/chat';
+            window.location.href = '/chat.html'; // Redirigir a /chat.html
         }
     });
 }
@@ -61,34 +52,26 @@ function initializeLoginPage() {
 // ===============================================
 // FUNCIÓN PRINCIPAL DE RUTEO
 // ===============================================
-
 function bootstrapApp() {
-    // Obtener la ruta actual (ej: /login.html, /chat.html)
     const currentPath = window.location.pathname.toLowerCase();
     
     console.log(`[APP] Iniciando en ruta: ${currentPath}`);
 
-    // Determinar qué código ejecutar basado en la URL
     if (currentPath.includes('/login.html')) {
         initializeLoginPage();
     } 
     
     else if (currentPath.includes('/chat.html')) {
-        // Inicializa la lógica de conexión, UI de chat, y escucha de mensajes
         initChatPage(initSocket, sendMessage); 
     } 
     
     else if (currentPath.includes('/user_rank.html')) {
-        // Inicializa la lógica de administración de rangos
         initRankPage(initSocket); 
     } 
     
     else if (currentPath.includes('/user_profile.html')) {
-        // Inicializa la lógica de visualización y edición de perfil
         initProfilePage(initSocket); 
     }
-    
-    // Las páginas '/' y '/error.html' generalmente no necesitan JS activo
 }
 
 // Iniciar el enrutador una vez que el DOM esté completamente cargado.
