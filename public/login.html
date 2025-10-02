@@ -3,21 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ingreso al Chat</title>
+    <title>Chat Optimizado</title>
+    <link rel="stylesheet" href="/styles/01_base.css"> 
     <link rel="stylesheet" href="/styles/03_components.css"> 
+    <link rel="stylesheet" href="/styles/04_chat_styles.css">
 </head>
 <body>
-    <div id="login-container">
+    
+    <div id="app-container">
+        
+        <div id="login-view" class="view active">
+            <div id="login-container">
+                <h2>Ingreso Optimizado</h2>
+                <form id="login-form"> 
+                    <input type="text" id="username" placeholder="Usuario..." required> 
+                    <p>Presiona ENTER para iniciar sesión automáticamente.</p>
+                </form>
+            </div>
+        </div>
 
-        <h2>Ingreso al Chat</h2>
+        <div id="chat-view" class="view hidden">
+            <div id="navigation">
+                <a href="#chat" class="active" data-view="chat">💬 Chat</a>
+                <a href="#rank" data-view="rank">⭐ Ranking</a>
+                <a href="#profile" data-view="profile">👤 Perfil</a>
+            </div>
+            
+            <div id="main-chat">
+                <h3 id="chat-header">Conectado como...</h3>
+                <div id="chat-messages"></div>
+                <div id="chat-input-area">
+                    <form id="message-form">
+                        <input type="text" id="message-input" placeholder="Escribe un mensaje o comando...">
+                    </form>
+                </div>
+            </div>
+            <div id="sidebar">
+                <h4>Usuarios Conectados:</h4>
+                <ul id="user-list"></ul>
+            </div>
+        </div>
 
-        <form id="login-form"> 
-            <input type="text" id="username" placeholder="Usuario..." required> 
-
-            <p>Presiona ENTER para iniciar sesión automáticamente.</p>
-        </form>
+        <div id="rank-view" class="view hidden">
+            <div id="navigation">
+                <a href="#chat" data-view="chat">💬 Chat</a>
+                <a href="#rank" class="active" data-view="rank">⭐ Ranking</a>
+                <a href="#profile" data-view="profile">👤 Perfil</a>
+            </div>
+            <h1>Clasificación de Usuarios</h1>
+            <ul id="rank-list">
+                </ul>
+        </div>
+        
     </div>
-
+    
     <script type="module" src="/scripts/main.js"></script> 
 </body>
 </html>
