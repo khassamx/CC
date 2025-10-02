@@ -21,6 +21,14 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // --- Lógica del Tema Automático (Propuesta 4) ---
+        if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
+            document.body.classList.add('dark');
+        } else {
+            document.body.classList.add('light');
+        }
+    </script>
     <script src="script.js"></script>
 </body>
 </html>
