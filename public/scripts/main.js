@@ -1,35 +1,35 @@
-// /public/scripts/main.js - Router ÚNICO y Optimizado
+// /public/scripts/main.js - Router ÚNICO y Optimizado (SPA)
 
-// --- Módulos Esenciales (DEBEN SER MÓDULOS ES) ---
 import { loadLocalData, saveLocalData } from './utils/localPersistence.js';
-import { handleLogin } from './components/appEvents.js'; 
+import { handleLogin } from './components/appEvents.js'; // Maneja la autenticación con el servidor
 import { initSocket, sendMessage } from './services/websocketService.js';
-import { initChatPage } from './components/chatEvents.js'; 
+import { initChatPage, displayChatMessage } from './components/chatEvents.js'; 
 import { initRankPage } from './components/rankEvents.js'; 
 
 let userData = loadLocalData();
 let isChatInitialized = false; 
+let loginTimeout = null; // Para el ingreso automático
 
 // ===============================================
-// 1. MANEJO DE VISTAS Y HASH ROUTING
+// 1. MANEJO DE VISTAS (SPA)
 // ===============================================
 
 function showView(viewName) {
     const views = document.querySelectorAll('.view');
     views.forEach(view => {
-        view.classList.add('hidden');
         view.classList.remove('active');
+        view.classList.add('hidden');
     });
 
     const targetView = document.getElementById(viewName + '-view');
     if (targetView) {
-        targetView.classList.remove('hidden');
         targetView.classList.add('active');
+        targetView.classList.remove('hidden');
 
-        // Inicializar la lógica solo cuando la vista se activa
+        // Inicializar la lógica
         if (viewName === 'chat' && !isChatInitialized) {
-            console.log("[Router] Inicializando conexión WS para Chat.");
-            initChatPage(initSocket, sendMessage); 
+            // Pasamos la función de renderizado avanzado de mensajes al chat
+            initChatPage(initSocket, sendMessage, displayChatMessage); 
             isChatInitialized = true;
         } else if (viewName === 'rank') {
             initRankPage(initSocket); 
@@ -38,62 +38,79 @@ function showView(viewName) {
 }
 
 function handleHashChange() {
-    // Por defecto es 'chat' si ya está logueado, o 'login' si no lo está.
-    const hash = window.location.hash.slice(1) || 'chat'; 
+    const hash = window.location.hash.slice(1) || 'chat'; // Por defecto es 'chat'
     
     if (!userData || !userData.username) {
         showView('login');
     } else {
-        showView(hash);
+        // Aseguramos que la navegación solo sea entre chat y rank
+        const validViews = ['chat', 'rank', 'profile'];
+        showView(validViews.includes(hash) ? hash : 'chat');
     }
+}
+
+// ===============================================
+// 2. LÓGICA DE LOGIN AUTOMÁTICO
+// ===============================================
+
+async function attemptLogin(username) {
+    if (!username || username.length < 3) return; 
+
+    // Se asume que el backend maneja la verificación de mayúsculas/minúsculas
+    const success = await handleLogin(username, null, saveLocalData, initSocket);
     
-    // Actualizar clase 'active' en el menú de navegación
-    document.querySelectorAll('#navigation a').forEach(a => {
-        a.classList.remove('active');
-        if (a.getAttribute('href') === '#' + hash) {
-            a.classList.add('active');
-        }
-    });
+    if (success) {
+        userData = loadLocalData(); 
+        // Mostrar el alias en el header del chat
+        document.getElementById('user-alias').textContent = userData.chatname; 
+        
+        window.location.hash = '#chat'; // Cambia la vista inmediatamente
+    } else {
+        alert("Usuario no válido. Por favor, intenta de nuevo.");
+    }
 }
 
-// ===============================================
-// 2. LÓGICA DE LOGIN (SPA)
-// ===============================================
 function initializeLoginPage() {
-    const loginForm = document.getElementById('login-form');
-    if (!loginForm) return;
+    const usernameInput = document.getElementById('username');
+    if (!usernameInput) return;
 
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); 
-        const username = document.getElementById('username').value;
+    // ➡️ INICIO DE SESIÓN AUTOMÁTICO AL ESCRIBIR
+    usernameInput.addEventListener('input', () => {
+        // Limpiar el timeout anterior si el usuario sigue escribiendo
+        clearTimeout(loginTimeout); 
         
-        // ... (deshabilitar formulario) ...
-
-        const success = await handleLogin(username, null, saveLocalData, initSocket);
-        
-        // ... (habilitar formulario) ...
-
-        // CRÍTICO: Si es exitoso, actualiza userData y llama al router
-        if (success) {
-            userData = loadLocalData(); 
-            window.location.hash = '#chat'; // Redirige el hash, activa showView('chat')
-        }
+        // Iniciar un nuevo timeout para intentar el login después de 1 segundo de pausa
+        loginTimeout = setTimeout(() => {
+            attemptLogin(usernameInput.value);
+        }, 1000); 
     });
+
+    // Prevenir el envío de formulario con ENTER (ya que es automático)
+    document.getElementById('login-form').addEventListener('submit', (e) => e.preventDefault());
 }
 
 // ===============================================
-// 3. BOOTSTRAP DE LA APLICACIÓN
+// 3. BOOTSTRAP
 // ===============================================
 function bootstrapApp() {
     window.addEventListener('hashchange', handleHashChange);
     initializeLoginPage();
 
-    // Decide qué mostrar al iniciar (login o chat)
+    // Iniciar en la vista correcta (Chat si ya está logueado, sino Login)
     if (userData && userData.username) {
-        handleHashChange(); 
+        handleHashChange(); // Carga el chat si hay datos
     } else {
         showView('login');
     }
+    
+    // Inicializar listeners de navegación
+    document.getElementById('navigation').addEventListener('click', (e) => {
+        if (e.target.tagName === 'A') {
+            // El hashchange se encargará de llamar a showView
+            window.location.hash = e.target.getAttribute('href'); 
+            e.preventDefault();
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', bootstrapApp);
