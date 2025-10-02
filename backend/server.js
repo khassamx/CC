@@ -1,175 +1,132 @@
-// server.js - Versión FINAL con Perfiles, Multer (Multimedia) y Socket.io
+// server.js (Ubicación: Carpeta Raíz)
 
 const express = require("express");
+const fs = require("fs");
 const http = require("http");
-const socketio = require("socket.io");
+const { Server } = require("socket.io");
 const path = require("path");
-const multer = require("multer"); // Para manejo eficiente de archivos binarios
+const multer = require("multer");
 
-// --- Configuración Inicial y Puerto ---
-// 1. Inicializa 'app' (Instancia de Express) PRIMERO
-const app = express(); 
-// 2. Ahora sí puedes usar 'app' para crear el servidor HTTP
-const server = http.createServer(app); 
-// 3. Inicializa Socket.io usando el servidor HTTP
-const io = socketio(server);
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+const PORT = 3000;
 
-const PORT = process.env.PORT || 3000;
+// Middleware para parsear JSON (peticiones POST)
+app.use(express.json()); 
+app.use(express.urlencoded({ extended: true }));
 
-// --- 1. Configuración de Multer para Subida de Fotos ---
-// Almacenamiento en disco para las fotos de perfil
+// --- CONFIGURACIÓN DE RUTAS Y MULTER (Archivos) ---
+// La carpeta raíz del proyecto es '..' porque server.js está en 'backend/'
+const rootDir = path.join(__dirname, '..');
+
+// Servir archivos estáticos: public/ y uploads/
+app.use(express.static(path.join(rootDir, 'public')));
+app.use('/uploads', express.static(path.join(rootDir, 'uploads')));
+
+// Configuración subida de archivos
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        // La carpeta 'uploads' DEBE existir en la raíz del proyecto
-        cb(null, path.join(__dirname, '..', 'uploads')); 
-    },
-    filename: (req, file, cb) => {
-        // Nombre de archivo único (timestamp + nombre original)
-        cb(null, Date.now() + '-' + file.originalname.toLowerCase().split(' ').join('-'));
-    }
+    destination: path.join(rootDir, 'uploads'), // Guardar en la carpeta uploads/
+    filename: (req, file, cb) => cb(null, Date.now() + "_" + file.originalname.toLowerCase().replace(/\s/g, '-'))
 });
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
 
-// --- 2. Almacén Central de Usuarios Conectados ---
-// Almacena el perfil completo, indexado por el ID ÚNICO (no el socket.id volátil)
-const connectedUsers = {}; 
+// --- ALMACÉN DE USUARIOS CONECTADOS ---
+const connectedUsers = {};
 
-// --- 3. Middlewares de Express y Archivos Estáticos ---
-// Sirve la carpeta 'public' (login.html, chat.html, perfil.html)
-app.use(express.static(path.join(__dirname, '..', 'public')));
-// Sirve la carpeta 'uploads' para que las fotos sean accesibles por URL
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads'))); 
+// --- LOGIN CON CONTRASEÑA (Ruta HTTP POST) ---
+app.post("/login", (req, res) => {
+    const { usuario, password } = req.body;
+    // CRÍTICO: Leer el users.json de la carpeta backend/
+    const usersPath = path.join(__dirname, 'users.json');
+    const users = JSON.parse(fs.readFileSync(usersPath, 'utf8'));
 
-// Middleware para redirigir al login si se accede a la raíz y no hay sesión/datos (simulado con el login.html)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
-});
+    const userKey = usuario.toLowerCase();
 
-
-// --- 4. Ruta de API REST para Subida de Fotos (FETCH API) ---
-// Punto clave de optimización: Multer maneja el binario de forma eficiente.
-app.post('/upload-photo', upload.single('profilePhoto'), (req, res) => {
-    if (req.file) {
-        // Devolver la URL pública del archivo: /uploads/nombre-del-archivo.jpg
-        const fileUrl = `/uploads/${req.file.filename}`;
-        res.json({ success: true, url: fileUrl });
+    if(users[userKey] && users[userKey].password === password){
+        // Usamos el perfil del JSON y agregamos la URL de la foto del JSON
+        const userProfile = { ...users[userKey] }; 
+        res.json({ ok: true, user: userProfile });
     } else {
-        res.status(400).json({ success: false, message: "No se subió el archivo o el campo es incorrecto." });
+        res.status(401).json({ ok: false, message: "Usuario o contraseña incorrecta." });
     }
 });
 
+// --- SUBIR FOTO/VIDEO (Ruta HTTP POST) ---
+app.post("/upload", upload.single("media"), (req, res) => {
+    if(req.file){
+        // Devolver la URL pública: /uploads/nombre-del-archivo
+        const filePath = "/uploads/" + req.file.filename;
+        res.json({ ok: true, path: filePath, mime: req.file.mimetype });
+    } else {
+        res.status(400).json({ ok: false, message: "Fallo al subir el archivo." });
+    }
+});
 
-// --------------------------------------------------
-// 5. Lógica de Socket.io (Tiempo Real)
-// --------------------------------------------------
-io.on("connection", (socket) => {
-    
-    let currentUserID; // El ID de perfil único (ej: "001")
+// --- SOCKET.IO (Tiempo Real) ---
+io.on("connection", socket => {
+    let currentUserID;
 
-    // --- JOINS: El cliente envía su perfil completo desde localStorage ---
+    // 1. JOIN (El cliente se conecta y envía su perfil de localStorage)
     socket.on("join", (perfil) => {
         currentUserID = perfil.id;
+        connectedUsers[perfil.id] = { ...perfil, socketId: socket.id };
+        console.log(`[JOIN] ${perfil.nombre} (${socket.id})`);
         
-        // Asocia el socket.id actual con el ID de perfil único
-        connectedUsers[perfil.id] = { ...perfil, socketId: socket.id }; 
-
-        console.log(`[JOIN] ${perfil.nombre} (${perfil.rango}) conectado. ID: ${currentUserID}`);
-        
-        // Mensaje de estado al resto
-        socket.broadcast.emit("server_message", { 
-            texto: `${perfil.nombre} se ha unido al chat.`, 
-            tipo: 'status' 
-        });
-        
-        // Actualiza la lista de usuarios para todos
+        socket.broadcast.emit("server_message", { texto: `${perfil.nombre} se ha unido.`, tipo: 'status' });
         io.emit("update_users", Object.values(connectedUsers));
     });
 
-    // --- PROFILE UPDATE: El usuario guardó cambios en perfil.html ---
+    // 2. ACTUALIZACIÓN DE PERFIL
     socket.on("profile_update", (updatedPerfil) => {
         if (connectedUsers[updatedPerfil.id]) {
-            // Actualizar el perfil en el almacén del servidor
-            connectedUsers[updatedPerfil.id] = { 
-                ...connectedUsers[updatedPerfil.id], 
-                ...updatedPerfil 
-            };
-            
-            // Notificar a todos sobre la actualización del perfil
-            io.emit("server_message", { 
-                texto: `${updatedPerfil.nombre} ha actualizado su perfil.`, 
-                tipo: 'status' 
-            });
-            
-            // Reenviar la lista actualizada de usuarios
+            connectedUsers[updatedPerfil.id] = { ...connectedUsers[updatedPerfil.id], ...updatedPerfil };
             io.emit("update_users", Object.values(connectedUsers));
+            io.emit("server_message", { texto: `${updatedPerfil.nombre} actualizó su perfil.`, tipo: 'status' });
         }
     });
 
-    // --- MENSAJES ---
-    socket.on("mensaje", (data) => {
-        const remitente = connectedUsers[currentUserID];
-        if (!remitente) return; // Si no hay remitente válido, ignorar
-
-        if (data.texto.startsWith('/')) {
-            // Manejo de comandos por rango
-            handleCommand(remitente, data.texto, io, socket.id);
-        } else {
-            // Reenvía el mensaje estándar a todos
-            io.emit("mensaje", { 
-                nombre: remitente.nombre, 
-                rango: remitente.rango, 
-                texto: data.texto, 
-                foto: remitente.foto, 
-                tipo: 'text' 
-            });
-        }
-    });
-
-    // --- DESCONEXIÓN ---
-    socket.on("disconnect", () => {
-        if (currentUserID && connectedUsers[currentUserID]) {
-            const desconectado = connectedUsers[currentUserID];
-            delete connectedUsers[currentUserID];
-            
-            socket.broadcast.emit("server_message", { 
-                texto: `${desconectado.nombre} ha abandonado.`, 
-                tipo: 'status' 
-            });
-            // Reenviar lista sin el usuario desconectado
-            io.emit("update_users", Object.values(connectedUsers));
-        }
-    });
-});
-
-
-// --- Lógica de Comandos (Implementación Simple) ---
-function handleCommand(user, fullCommand, io, socketId) {
-    const isAdmin = user.rango === 'Fundador' || user.rango === 'Líder';
-    let responseText = `Comando '${fullCommand.split(' ')[0]}' no reconocido o no tienes permiso.`;
-
-    if (fullCommand.startsWith('/help')) {
-        responseText = `Comandos disponibles: /help, /me. (Administración: /ban, /kick si eres Fundador/Líder).`;
-    } else if (fullCommand.startsWith('/me')) {
-        const action = fullCommand.substring(4).trim();
-        // Emite una acción a todos (ej: *Oliver Doldán está durmiendo*)
-        io.emit("server_message", { 
-            texto: `*${user.nombre} ${action}*`, 
-            tipo: 'system' 
+    // 3. MENSAJES (Global y Privado)
+    socket.on("mensajeGlobal", (data) => {
+        const remitente = connectedUsers[data.id];
+        if (!remitente) return;
+        io.emit("mensajeGlobal", { 
+            ...data, 
+            nombre: remitente.nombre, 
+            rango: remitente.rango, 
+            foto: remitente.foto 
         });
-        return; // No enviar mensaje al usuario local
-    } else if ((fullCommand.startsWith('/ban') || fullCommand.startsWith('/kick')) && isAdmin) {
-        responseText = `[ADMIN - ${user.rango}] Ejecutando acción administrativa para: ${fullCommand.substring(5).trim() || 'usuario no especificado'}.`;
-    }
-
-    // Envía la respuesta del sistema solo al usuario que ejecutó el comando
-    io.to(socketId).emit("server_message", { 
-        texto: responseText, 
-        tipo: 'system' 
     });
-}
 
+    socket.on("mensajePrivado", (data) => {
+        const remitente = connectedUsers[data.id];
+        if (!remitente) return;
+        
+        const targetSocket = Object.values(connectedUsers).find(u => u.usuario === data.destino)?.socketId;
+        
+        if (targetSocket) {
+            // Enviar al destinatario
+            io.to(targetSocket).emit("mensajePrivado", { ...data, nombre: remitente.nombre, foto: remitente.foto });
+            // Enviar al remitente como confirmación
+            io.to(remitente.socketId).emit("mensajePrivado", { ...data, nombre: remitente.nombre, foto: remitente.foto, isSender: true });
+        } else {
+            // Manejar error si el usuario no está conectado
+            io.to(remitente.socketId).emit("server_message", { 
+                texto: `El usuario ${data.destino} no está conectado.`, 
+                tipo: 'system' 
+            });
+        }
+    });
 
-// --- Arrancar el Servidor ---
-server.listen(PORT, () => {
-  console.log(`Servidor de Chat corriendo en http://localhost:${PORT}`);
+    // 4. DESCONEXIÓN
+    socket.on("disconnect", () => {
+        const desconectado = Object.values(connectedUsers).find(u => u.socketId === socket.id);
+        if (desconectado) {
+            delete connectedUsers[desconectado.id];
+            socket.broadcast.emit("server_message", { texto: `${desconectado.nombre} ha abandonado.`, tipo: 'status' });
+            io.emit("update_users", Object.values(connectedUsers));
+        }
+    });
 });
+
+server.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
