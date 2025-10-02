@@ -2,31 +2,39 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Chat Modularizado</title>
-    <link rel="stylesheet" href="/styles/01_base.css">
-    <link rel="stylesheet" href="/styles/02_layout.css">
-    <link rel="stylesheet" href="/styles/03_components.css">
-    <link rel="stylesheet" href="/styles/04_chat.css">
-    <link rel="stylesheet" href="/styles/05_userlist.css">
-    <link rel="stylesheet" href="/styles/06_ranks.css">
-    <link rel="stylesheet" href="/styles/07_media.css">
+    <title>Chat Modularizado PRO</title>
+    <link rel="stylesheet" href="styles/01_base.css">
+    <link rel="stylesheet" href="styles/02_layout.css">
+    <link rel="stylesheet" href="styles/03_components.css">
+    <link rel="stylesheet" href="styles/04_chat.css">
+    <link rel="stylesheet" href="styles/05_userlist.css">
+    <link rel="stylesheet" href="styles/06_ranks.css">
+    <link rel="stylesheet" href="styles/07_media.css">
 </head>
 <body>
     <div id="login-container">
-        <h2>Ingreso Modular</h2>
+        <h2>Ingreso al Chat</h2>
         <input type="text" id="username" placeholder="Usuario..." required>
         <input type="text" id="chatname" placeholder="Nombre de chat..." required>
         <input type="url" id="avatar-url" placeholder="URL del Avatar (opcional)">
         <select id="rank">
-            </select>
+            <option value="Fundador">Fundador</option>
+            <option value="Líder">Líder</option>
+            <option value="Colíder">Colíder</option>
+            <option value="Veterano">Veterano</option>
+            <option value="Miembro" selected>Miembro</option>
+        </select>
+        <button id="login-button">Entrar</button>
     </div>
 
     <div id="main-chat" class="hidden">
+        
         <div id="chat-container">
             <div id="messages"></div>
             <div id="typing-indicator"></div>
-            <input type="text" id="message-input" placeholder="Escribe un mensaje...">
+            <input type="text" id="message-input" placeholder="Escribe un mensaje o /comando">
         </div>
+
         <div id="users-container">
             <h3>Conectados (<span id="user-count">0</span>)</h3>
             <div id="user-list"></div>
