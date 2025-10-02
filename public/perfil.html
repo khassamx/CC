@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>Perfil de Usuario</title>
-    </head>
+    <link rel="stylesheet" href="perfil.css">
+</head>
 <body>
-    <div class="perfil-container">
+    <div id="perfil-container">
         <h2>Mi Perfil</h2>
         <img id="foto" src="" width="100" height="100" style="border-radius:50%; object-fit: cover;">
         <input type="file" id="subirMedia" style="display:none;" accept="image/*,video/*">
@@ -15,64 +16,11 @@
         <p>ID: <span id="id"></span></p>
         <p>Rango: <span id="rango"></span></p>
 
-        <button id="guardar">Guardar Cambios</button>
+        <button id="guardarBtn">Guardar Cambios</button>
         <a href="chat.html">Volver al Chat</a>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-        let user = JSON.parse(localStorage.getItem("userProfile"));
-        if (!user) window.location.href = "login.html";
-
-        const fotoImg = document.getElementById("foto");
-        const nombreInput = document.getElementById("nombre");
-        const subirMediaInput = document.getElementById("subirMedia");
-        const guardarBtn = document.getElementById("guardar");
-
-        // Cargar datos
-        fotoImg.src = user.foto;
-        nombreInput.value = user.nombre;
-        document.getElementById("id").textContent = user.id;
-        document.getElementById("rango").textContent = user.rango;
-
-        // Función para subir archivos al servidor
-        async function uploadMedia(file) {
-            const formData = new FormData();
-            formData.append('media', file); // 'media' coincide con upload.single("media") en server.js
-            
-            try {
-                const res = await fetch('/upload', { method: 'POST', body: formData });
-                const data = await res.json();
-                return data.path;
-            } catch (error) {
-                console.error("Error al subir media:", error);
-                return user.foto;
-            }
-        }
-
-        // Evento de subida
-        subirMediaInput.addEventListener("change", async (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const newPath = await uploadMedia(file);
-                fotoImg.src = newPath;
-                // Guardar inmediatamente después de la subida para reflejar la foto
-                guardarBtn.click(); 
-            }
-        });
-
-        // Evento de Guardar
-        guardarBtn.addEventListener("click", () => {
-            user.nombre = nombreInput.value;
-            user.foto = fotoImg.src; 
-            
-            localStorage.setItem("userProfile", JSON.stringify(user));
-            
-            // Notificar al servidor y a otros usuarios
-            socket.emit("profile_update", user);
-            alert("Perfil guardado ✅");
-        });
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
