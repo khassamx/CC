@@ -5,7 +5,7 @@ const UserProfileSchema = new mongoose.Schema({
     chatname: String,
     rank: { type: String, default: 'Miembro' },
     avatarUrl: String,
-    // Aquí irían el XP, moneda, etc.
+    lastActive: { type: Date, default: Date.now } // Nuevo: Para saber si está inactivo
 });
 
 module.exports = mongoose.model('UserProfile', UserProfileSchema);
