@@ -22,7 +22,6 @@
     .rango { font-size:12px; color:skyblue; margin-right:5px; }
     .usuario { color:lightgreen; }
 
-    /* Lista de Usuarios */
     #user-list { list-style: none; padding: 0; }
     #user-list li { display: flex; align-items: center; padding: 5px 0; border-bottom: 1px dotted #333; }
     .user-photo-list { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; margin-right: 8px; }
@@ -61,9 +60,8 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const perfil = JSON.parse(localStorage.getItem("perfilUsuario"));
-    if(!perfil) window.location.href = "login.html"; // Seguridad
+    if(!perfil) window.location.href = "login.html"; 
 
-    // Cargar perfil en el header
     document.getElementById("bienvenida").textContent = perfil.nombre;
     document.getElementById("rango").textContent = "Rango: " + perfil.rango;
     document.getElementById("foto-header").src = perfil.foto;
@@ -103,7 +101,7 @@
         users.forEach(u => {
             const li = document.createElement('li');
             li.innerHTML = `
-                <img src="${u.foto}" class="user-photo-list">
+                <img src="${u.foto}" class="user-photo-list" onerror="this.src='/uploads/default.png'">
                 <span>${u.nombre} [${u.rango}]</span>
             `;
             userList.appendChild(li);
@@ -120,7 +118,6 @@
 
     // --- Conexión y Recepción ---
     socket.on("connect", () => {
-        // 1. CRÍTICO: Envía el PERFIL COMPLETO al servidor
         socket.emit("join", perfil);
     });
 
@@ -137,16 +134,16 @@
       }
     });
 
-    // Escuchar el evento de almacenamiento (para actualizar si perfil.html lo cambia)
+    // Sincronización de Perfil (cuando se edita en otra pestaña/ventana)
     window.addEventListener('storage', (e) => {
         if (e.key === 'perfilUsuario') {
             const newPerfil = JSON.parse(e.newValue);
             if(newPerfil) {
-                // Actualizar la UI del chat local
+                // 1. Actualizar la UI del chat local
                 document.getElementById("bienvenida").textContent = newPerfil.nombre;
                 document.getElementById("rango").textContent = "Rango: " + newPerfil.rango;
                 document.getElementById("foto-header").src = newPerfil.foto;
-                // Notificar a todos en el chat que mi perfil cambió
+                // 2. Notificar a todos en el chat que mi perfil cambió
                 socket.emit("profile_update", newPerfil); 
             }
         }
