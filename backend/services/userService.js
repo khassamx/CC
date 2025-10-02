@@ -1,19 +1,26 @@
 const UserProfile = require('../models/user.model');
+const bcrypt = require('bcrypt');
+const SALT_ROUNDS = 10; // Nivel de hasheo
 
-exports.findOrCreateUser = async (data) => {
-    let user = await UserProfile.findOne({ username: data.username });
+exports.authenticateUser = async (username, password) => {
+    let user = await UserProfile.findOne({ username });
+
     if (!user) {
-        user = new UserProfile(data);
+        // REGISTRO: Hashear y guardar el nuevo usuario
+        const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+        user = new UserProfile({ 
+            username: username,
+            chatname: username, // Chatname por defecto es el username
+            passwordHash: passwordHash
+        });
+        await user.save();
+        return { success: true, user: user };
     } else {
-        // Actualizar datos de sesión (chatname, avatar, última actividad)
-        user.chatname = data.chatname;
-        user.avatarUrl = data.avatarUrl;
-        user.lastActive = Date.now();
+        // LOGIN: Comparar hash
+        const isMatch = await bcrypt.compare(password, user.passwordHash);
+        return isMatch 
+            ? { success: true, user: user }
+            : { success: false, message: 'Contraseña incorrecta.' };
     }
-    await user.save();
-    return user;
 };
-
-exports.updateUserRank = async (username, newRank) => {
-    return UserProfile.updateOne({ username }, { rank: newRank });
-};
+// ... (otras funciones)
