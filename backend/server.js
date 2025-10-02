@@ -1,15 +1,14 @@
-// /backend/server.js - Versión Final con Rutas Corregidas
+// /backend/server.js - Versión FINAL con Rutas de HTML en la carpeta 'public'
 
 const express = require('express');
 const http = require('http');
 const path = require('path');
 const { WebSocketServer } = require('ws'); 
-// Asumimos que la librería 'ws' está instalada: npm install ws
 
 // ************************************************
 // 1. IMPORTACIÓN DEL MANEJADOR DE WS
 // ************************************************
-// CRÍTICO: La corrección de la ruta, ya que websocket.js está en el mismo /backend/
+// Importamos desde el mismo directorio /backend/
 const { setupWebSocketListeners } = require('./websocket'); 
 
 // --- Inicialización ---
@@ -18,39 +17,44 @@ const server = http.createServer(app);
 const PORT = 8080; 
 
 // --- Middleware ---
-// Sirve la carpeta 'public' para scripts, CSS e imágenes
-// path.join(__dirname, '../public') nos lleva de /backend/ a /public/
-app.use('/public', express.static(path.join(__dirname, '../public'))); 
+// CRÍTICO: Servir archivos estáticos (scripts, styles, etc.).
+// Esto también sirve implícitamente todos los HTMLs que están en 'public/' 
+// (como chat.html y login.html) cuando se acceden directamente (ej: /public/chat.html).
+app.use(express.static(path.join(__dirname, '../public'))); 
 
 
 // ************************************************
-// 2. RUTAS EXPRESS (HTML en la Raíz)
+// 2. RUTAS EXPRESS (HTMLs AHORA ESTÁN EN PUBLIC)
 // ************************************************
-// La ruta '../' nos saca de la carpeta 'backend' a la raíz del proyecto (donde están los HTML)
+// Como los archivos HTML están en la carpeta que Express ya está sirviendo 
+// como estáticos, SIMPLIFICAMOS las rutas para que Express las maneje automáticamente.
 
 app.get('/', (req, res) => {
-    // Redirige a /login.html
+    // Redirige a la página de login (Express la encuentra en la carpeta estática)
     res.redirect('/login.html'); 
 });
 
+// Nota: Ya NO necesitamos app.get('/login.html', ...) ni app.get('/chat.html', ...) 
+// porque Express los sirve automáticamente desde la carpeta estática.
+// Si accedes a http://localhost:8080/login.html, Express busca el archivo en la raíz estática ('public/').
+
+// SIN EMBARGO, si quieres proteger o asegurar la ruta, lo dejamos así:
 app.get('/login.html', (req, res) => {
-    // Sirve el archivo login.html que está en la raíz
-    res.sendFile(path.join(__dirname, '..', 'login.html'));
+    // __dirname (backend) + '..' (sube a CC) + 'public' (entra a public) + 'login.html'
+    res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
 });
 
 app.get('/chat.html', (req, res) => {
-    // Sirve el archivo chat.html que está en la raíz
-    // Aquí es donde el login te redirige.
-    res.sendFile(path.join(__dirname, '..', 'chat.html'));
+    // La redirección del login lleva aquí
+    res.sendFile(path.join(__dirname, '..', 'public', 'chat.html'));
 });
 
-// Rutas para otros archivos HTML en la raíz
 app.get('/user_rank.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'user_rank.html'));
+    res.sendFile(path.join(__dirname, '..', 'public', 'user_rank.html'));
 });
 
 app.get('/user_profile.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'user_profile.html'));
+    res.sendFile(path.join(__dirname, '..', 'public', 'user_profile.html'));
 });
 
 
@@ -61,8 +65,6 @@ const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws) => {
     console.log('[WebSocket] Nuevo cliente conectado.');
-    
-    // CRÍTICO: Configura los listeners del WS con la función importada.
     setupWebSocketListeners(ws, wss);
 });
 
@@ -72,5 +74,4 @@ wss.on('connection', (ws) => {
 // ************************************************
 server.listen(PORT, () => {
     console.log(`Servidor HTTP y WS corriendo en http://localhost:${PORT}`);
-    // Asegúrate de que la conexión a DB no falle aquí si la usas
 });
