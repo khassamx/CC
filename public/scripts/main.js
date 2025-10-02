@@ -1,51 +1,42 @@
 // main.js - El Orquestador de la Aplicación
-// Importamos solo las funciones de inicialización de los módulos
-import { loadLocalData, saveLocalData } from './utils/localPersistence.js';
-import { requestPermission } from './utils/notifications.js';
-import { initSocket, sendMessage } from './core/socket.js';
-import { handleLogin, handleMessageInput } from './components/appEvents.js';
+// ... (imports)
 
 // --- ELEMENTOS CLAVE ---
-const loginButton = document.getElementById('login-button');
+// Eliminamos la referencia a loginButton
 const messageInput = document.getElementById('message-input');
 const loginContainer = document.getElementById('login-container');
 const mainChat = document.getElementById('main-chat');
-
+const passwordInput = document.getElementById('password'); // Necesitamos este
 
 // --- FUNCIÓN DE ARRANQUE PRINCIPAL ---
-
 function bootstrapApp() {
-    console.log("Iniciando aplicación modular y optimizada...");
+    console.log("Iniciando aplicación modular...");
     
-    // 1. Inicializar Utilitarios
-    requestPermission(); // Solicita permisos de notificaciones.
+    // ... (Lógica de loadLocalData e initSocket, etc.)
 
-    // 2. Intentar Cargar Datos y Auto-Login
-    const userData = loadLocalData();
+    // 3. Conectar la UI al Socket (Eventos de Login y Chat)
     
-    if (userData && userData.username) {
-        // Si hay datos guardados, saltamos el formulario
-        loginContainer.classList.add('hidden');
-        mainChat.classList.remove('hidden');
+    // Si la aplicación está en la pantalla de login:
+    if (loginContainer && !loginContainer.classList.contains('hidden')) {
+        // ⬅️ CRÍTICO: ADJUNTAR EVENTO A LA TECLA ENTER
+        // Aseguramos que el login se dispare al presionar Enter en cualquier input
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Evitar envío de formulario HTML
+                handleLogin(saveLocalData, initSocket); 
+            }
+        });
         
-        // Iniciamos el socket, que enviará el 'join' automáticamente.
-        initSocket(userData); 
-
-    } else {
-        // Mostrar la pantalla de login y adjuntar eventos
-        loginButton.addEventListener('click', () => handleLogin(saveLocalData, initSocket));
-        
-        // Si no hay datos, mostramos login y esperamos la acción del usuario.
-        loginContainer.classList.remove('hidden');
+        // También puedes adjuntarlo al input de usuario para mayor comodidad
+        document.getElementById('username').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                passwordInput.focus(); // Mover al campo de contraseña
+            }
+        });
     }
 
-    // 3. Conectar la UI al Socket (Eventos de Chat)
-    // Esto asegura que al presionar ENTER o el botón, se llame al módulo correcto
+    // Evento de chat (sigue igual)
     messageInput.addEventListener('keypress', (e) => handleMessageInput(e, sendMessage));
 }
 
-// CRÍTICO: Ejecutar la función de arranque solo cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', bootstrapApp);
-
-// Exportar funciones si se necesitan externamente (ej: en pruebas)
-export { bootstrapApp };
+// ... (El resto del main.js)
