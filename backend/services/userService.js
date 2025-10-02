@@ -1,7 +1,7 @@
 // /backend/services/userService.js (Modo SIN SEGURIDAD - SOLO PRUEBAS)
 
 const UserProfile = require('../models/user.model');
-// NO necesitamos bcryptjs
+// No usamos bcryptjs para la prueba rápida
 
 // Configuración del líder
 const FIRST_USER = { username: 'Oliver', rank: 'Líder' };
@@ -11,26 +11,23 @@ exports.authenticateUser = async (username) => {
 
     if (!user) {
         // 1. REGISTRO
-        let initialRank = 'Miembro';
-        if (username === FIRST_USER.username) {
-            initialRank = FIRST_USER.rank;
-        }
-
+        let initialRank = (username === FIRST_USER.username) ? FIRST_USER.rank : 'Miembro';
+        
         user = new UserProfile({ 
             username: username,
             chatname: username,
-            passwordHash: 'no_pass', // Guardamos un valor dummy
+            passwordHash: 'no_pass', // Valor dummy
             rank: initialRank 
         });
         await user.save();
         
-        return { success: true, user: user };
-        
     } else {
-        // 2. LOGIN (Siempre exitoso si el usuario existe)
+        // 2. LOGIN (Siempre exitoso si el usuario ya existe)
         user.lastActive = Date.now();
         await user.save();
-        return { success: true, user: user };
     }
+    
+    // CRÍTICO: Siempre retorna éxito después de crear/encontrar el usuario
+    return { success: true, user: user };
 };
-// ... (otras funciones)
+// ... (otras funciones permanecen igual)
