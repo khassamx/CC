@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat Multiusuario Real</title>
+  <style>
+    body { font-family: Arial; background:#111; color:white; display:flex; height:100vh; margin:0; }
+    #container { display:flex; flex:1; }
+    #sidebar { width:250px; background:#222; padding:15px; border-right:1px solid #444; }
+    #main-chat { flex:1; display:flex; flex-direction:column; }
+    header { background:#222; padding:15px; text-align:center; }
+    #chat-box { flex:1; overflow-y:auto; padding:15px; background:#1a1a1a; }
+    
+    .mensaje, .status, .system { margin:5px 0; padding:8px; border-radius:8px; }
+    .mensaje { background:#333; }
+    .status { background:#4a4; color:white; text-align:center; }
+    .system { background:#555; color:yellow; } 
+    
+    .msg-header { font-weight:bold; font-size:1.1em; display:block; margin-bottom:2px;} /* Encabezado Rango + Usuario */
+    .rango { font-size:12px; color:skyblue; margin-right:5px; }
+    .usuario { color:lightgreen; }
+
+    footer { display:flex; background:#222; padding:10px; align-items:center; }
+    #mensajeInput { flex:1; padding:10px; border:none; border-radius:8px; font-size:16px; }
+    #media-upload { display:none; }
+    #upload-button { background:orange; margin:0 5px; cursor:pointer; }
+    #enviar-button { background:lightgreen; cursor:pointer; }
+    
+    .media-content { max-width: 100%; max-height: 200px; display: block; margin-top: 5px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="sidebar">
+        <h3 id="bienvenida"></h3>
+        <p id="rango-actual"></p>
+        <h4>Usuarios Conectados:</h4>
+        <ul id="user-list"></ul>
+    </div>
+
+    <div id="main-chat">
+        <header>
+            <h1>Chat Multiusuario</h1>
+        </header>
+        <div id="chat-box"></div>
+        <footer>
+            <input type="file" id="media-upload" accept="image/*,video/*">
+            <button id="upload-button" onclick="document.getElementById('media-upload').click()">📷 Media</button>
+            <input type="text" id="mensajeInput" placeholder="Escribe un mensaje o /comando...">
+            <button id="enviar-button">Enviar</button>
+        </footer>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const usuario = params.get("usuario") || "Invitado";
+    const rango = params.get("rango") || "Sin rango";
+
+    document.getElementById("bienvenida").textContent = `Hola ${usuario}!`;
+    document.getElementById("rango-actual").textContent = `Tu rango: ${rango}`;
+    
+    const chatBox = document.getElementById("chat-box");
+    const userList = document.getElementById("user-list");
+    const mensajeInput = document.getElementById("mensajeInput");
+    const mediaUpload = document.getElementById("media-upload");
+    const enviarButton = document.getElementById("enviar-button");
+
+    const socket = io();
+
+    // --- Funciones de Renderizado ---
+    function appendMessage(data) {
+        const div = document.createElement("div");
+        div.classList.add(data.tipo === 'text' || data.tipo === 'media' ? 'mensaje' : data.tipo);
+
+        if (data.tipo === 'text') {
+            // Formato: [Rango] Usuario: Texto
+            div.innerHTML = `<span class="msg-header"><span class="rango">[${data.rango}]</span><span class="usuario">${data.usuario}:</span></span>${data.texto}`;
+        } else if (data.tipo === 'media') {
+            const mediaTag = data.mimeType.startsWith('image/') 
+                ? `<img src="${data.url}" class="media-content" alt="Imagen enviada">` 
+                : `<video src="${data.url}" class="media-content" controls></video>`;
+
+            div.innerHTML = `<span class="msg-header"><span class="rango">[${data.rango}]</span><span class="usuario">${data.usuario}:</span></span><span style="display:block;">Enviado multimedia</span>${mediaTag}`;
+        } else if (data.tipo === 'status') {
+             div.innerHTML = `⚠️ ${data.texto}`;
+        } else if (data.tipo === 'system') {
+             div.innerHTML = `[SISTEMA]: ${data.texto}`;
+        }
+
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function updateUsers(users) {
+        userList.innerHTML = '';
+        users.forEach(u => {
+            const li = document.createElement('li');
+            li.textContent = `${u.usuario} [${u.rango}]`;
+            userList.appendChild(li);
+        });
+    }
+
+    // --- Lógica de Envío ---
+    function enviarMensaje() {
+      const texto = mensajeInput.value.trim();
+      if (!texto) return;
+
+      socket.emit("mensaje", { texto, tipo: 'text' });
+      mensajeInput.value = "";
+    }
+    
+    // Envío de Media
+    mediaUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // **CRÍTICO: Base64 para Socket.io (solo para archivos pequeños)**
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            socket.emit("mensaje", { 
+                texto: 'Archivo adjunto',
+                tipo: 'media', 
+                url: event.target.result, 
+                mimeType: file.type 
+            });
+            mediaUpload.value = ''; 
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // --- Conexión ---
+    socket.on("connect", () => {
+        // 1. CRÍTICO: Envía el evento JOIN con los datos del URL
+        socket.emit("join", { usuario, rango });
+    });
+
+    // --- Recepción ---
+    socket.on("update_users", updateUsers); 
+    socket.on("mensaje", appendMessage); 
+    socket.on("server_message", appendMessage);
+
+    // Eventos de Input
+    enviarButton.addEventListener("click", enviarMensaje);
+    mensajeInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault(); 
+        enviarMensaje();
+      }
+    });
+  </script>
+</body>
+</html>
