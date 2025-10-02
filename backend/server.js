@@ -1,14 +1,15 @@
-// /backend/server.js - Orquestador COMPLETO
+// /backend/server.js - Versión Final con Rutas Corregidas
 
 const express = require('express');
 const http = require('http');
 const path = require('path');
-const { WebSocketServer } = require('ws'); // Necesario para el servidor WS
+const { WebSocketServer } = require('ws'); 
+// Asumimos que la librería 'ws' está instalada: npm install ws
 
 // ************************************************
-// 1. CORRECCIÓN DE RUTA COBOL (CJS require)
+// 1. IMPORTACIÓN DEL MANEJADOR DE WS
 // ************************************************
-// Asumimos que websocket.js está en el mismo directorio (/backend/)
+// CRÍTICO: La corrección de la ruta, ya que websocket.js está en el mismo /backend/
 const { setupWebSocketListeners } = require('./websocket'); 
 
 // --- Inicialización ---
@@ -16,66 +17,60 @@ const app = express();
 const server = http.createServer(app);
 const PORT = 8080; 
 
-// --- Configuración de la Base de Datos (Asumimos que la tienes) ---
-// const connectDB = require('./db/connection'); 
-// (Asegúrate de que esta conexión a MongoDB esté operativa)
+// --- Middleware ---
+// Sirve la carpeta 'public' para scripts, CSS e imágenes
+// path.join(__dirname, '../public') nos lleva de /backend/ a /public/
+app.use('/public', express.static(path.join(__dirname, '../public'))); 
 
-// --- Middleware y Servir Archivos Estáticos ---
-// Sirve la carpeta 'public' para scripts y CSS
-app.use(express.static(path.join(__dirname, '../public'))); 
-// Usamos '../public' porque estamos dentro de 'backend/'
 
 // ************************************************
-// 2. RUTAS EXPRESS (HTML)
+// 2. RUTAS EXPRESS (HTML en la Raíz)
 // ************************************************
-// Las rutas son la razón por la que el navegador sabe a dónde ir
+// La ruta '../' nos saca de la carpeta 'backend' a la raíz del proyecto (donde están los HTML)
 
-// Ruta Raíz: Siempre redirige al login si no hay sesión
 app.get('/', (req, res) => {
-    // Nota: Si no estás usando sesiones de Express (como 'express-session'), 
-    // esta lógica debe ser simple: solo envía el login.
-    res.sendFile(path.join(__dirname, '..', 'login.html'));
+    // Redirige a /login.html
+    res.redirect('/login.html'); 
 });
 
-// Ruta de Login (principal)
 app.get('/login.html', (req, res) => {
+    // Sirve el archivo login.html que está en la raíz
     res.sendFile(path.join(__dirname, '..', 'login.html'));
 });
 
-// Ruta de Chat (protegida o principal del chat)
 app.get('/chat.html', (req, res) => {
-    // Aquí iría la lógica de verificación de sesión si existiera.
+    // Sirve el archivo chat.html que está en la raíz
+    // Aquí es donde el login te redirige.
     res.sendFile(path.join(__dirname, '..', 'chat.html'));
 });
 
-// Ruta de Rank
+// Rutas para otros archivos HTML en la raíz
 app.get('/user_rank.html', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'user_rank.html'));
 });
 
-// Ruta de Perfil
 app.get('/user_profile.html', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'user_profile.html'));
 });
 
 
 // ************************************************
-// 3. INICIALIZACIÓN DEL SERVIDOR WS (WebSocket)
+// 3. INICIALIZACIÓN DEL SERVIDOR WS
 // ************************************************
 const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws) => {
     console.log('[WebSocket] Nuevo cliente conectado.');
     
-    // CRÍTICO: Configura los listeners del WS para esta conexión.
+    // CRÍTICO: Configura los listeners del WS con la función importada.
     setupWebSocketListeners(ws, wss);
 });
 
 
 // ************************************************
-// 4. ARRANQUE DEL SERVIDOR
+// 4. ARRANQUE
 // ************************************************
 server.listen(PORT, () => {
     console.log(`Servidor HTTP y WS corriendo en http://localhost:${PORT}`);
-    // connectDB(); // Llama a la conexión de DB si la usas
+    // Asegúrate de que la conexión a DB no falle aquí si la usas
 });
