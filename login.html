@@ -1,7 +1,19 @@
-<div id="login-container">
-    <h2>Ingreso al Chat</h2>
-    <input type="text" id="username" placeholder="Usuario..." required>
-    <input type="password" id="password" placeholder="Contraseña..." required> 
-    
-    <p style="color: #00cc33; margin-top: 15px;">Presiona ENTER para ingresar.</p>
-</div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Ingreso Automatizado</title>
+</head>
+<body>
+    <div id="login-container">
+        <h2>Ingreso al Chat</h2>
+        
+        <form id="login-form"> 
+            <input type="text" id="username" placeholder="Usuario..." required value="Oliver">
+            <input type="password" id="password" placeholder="Contraseña..." required value="1283"> 
+            
+            <p style="color: #00cc33; margin-top: 15px;">Presiona ENTER para ingresar automáticamente.</p>
+        </form>
+    </div>
+    <script type="module" src="/scripts/main.js"></script> 
+</body>
+</html>
