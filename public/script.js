@@ -1,4 +1,4 @@
-// public/script.js (VERSIÓN CORREGIDA Y OPTIMIZADA)
+// public/script.js (VERSIÓN CORREGIDA Y OPTIMIZADA CON RANGOS CSS)
 
 const user = JSON.parse(localStorage.getItem("userProfile") || '{}');
 // CRÍTICO: Redireccionamiento a la nueva página principal 'index.html'
@@ -110,12 +110,17 @@ if (socket) {
         const mediaContent = data.path ? renderMedia(data.path, data.mime) : data.texto;
         const destinoTag = isPrivate && !isSender ? `[MP de ${data.nombre}] ` : (isPrivate ? `[MP para ${data.destino}] ` : '');
         
+        // CRÍTICO: Usar data.rangoCss en el span del header y data.rango en el texto
+        const rangoCssClass = data.rangoCss || ''; // Usar la nueva clase para el estilo
+        const rangoText = data.rango || 'User';
+        const rangoSpan = `<span class="rango ${rangoCssClass}">[${rangoText}]</span>`;
+
         targetDiv.innerHTML += `
             <div class="mensaje ${msgClass}">
                 <img src="${data.foto || '/uploads/default.png'}" class="msg-photo" onerror="this.src='/uploads/default.png'">
                 <div class="msg-content">
                     <div class="msg-header">
-                        <span class="rango">[${data.rango || 'User'}]</span>
+                        ${rangoSpan} 
                         <span class="usuario">${senderName}</span>
                     </div>
                     <p>${destinoTag}${mediaContent}</p>
@@ -216,9 +221,15 @@ if (socket) {
         userList.innerHTML = '';
         users.forEach(u => {
             if (u.id === user.id) return; // No mostrarse a sí mismo
+            
+            // CRÍTICO: Usar rangoCss en la lista de usuarios
+            const rangoCssClass = u.rangoCss || '';
+            const rangoText = u.rango || 'User';
+
             const li = document.createElement('li');
             li.innerHTML = `<img src="${u.foto || '/uploads/default.png'}" class="user-photo-list" onerror="this.src='/uploads/default.png'">
-                            <span>${u.nombre} [${u.rango}]</span>`;
+                            <span class="user-rango ${rangoCssClass}">[${rangoText}]</span>
+                            <span>${u.nombre}</span>`;
             li.onclick = () => {
                 targetUserPrivate = u.usuario.toLowerCase();
                 targetUserInfo.textContent = ` (MP fijo a @${targetUserPrivate})`;
@@ -245,7 +256,13 @@ function cargarDatosPerfil() {
     fotoImg.src = user.foto || '/uploads/default.png';
     nombreInput.value = user.nombre || "";
     document.getElementById("id").textContent = user.id || "N/A";
-    document.getElementById("rango").textContent = user.rango || "User";
+    
+    // CRÍTICO: Cargar el rango y la clase CSS en la vista de perfil
+    const rangoDisplay = document.getElementById("rango");
+    const rangoCssClass = user.rangoCss || '';
+    const rangoText = user.rango || 'User';
+    rangoDisplay.textContent = rangoText;
+    rangoDisplay.className = `perfil-rango ${rangoCssClass}`; // Asignar la clase CSS
 
     async function uploadAndSync(file) {
         const formData = new FormData();
