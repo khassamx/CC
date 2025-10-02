@@ -1,78 +1,73 @@
 /* ==================================== */
-/* 01_base.css / 03_components.css */
-/* Estilos para la interfaz de Terminal */
+/* 03_components.css - VERSIÓN HACKER CON CARRUSEL */
 /* ==================================== */
 
-/* 1. Base del cuerpo: Fondo negro y fuente monospace neón */
+/* 1. Base y Contenedor */
 body {
     background-color: #000000;
-    color: #00ff41; /* Verde Neón Principal */
+    color: #00ff41; 
     font-family: 'Consolas', 'Courier New', monospace;
-    margin: 0;
-    padding: 0;
     display: flex;
-    justify-content: center; /* Centrado horizontal */
-    align-items: center; /* Centrado vertical */
-    min-height: 100vh; /* Ocupa toda la altura de la vista */
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
 }
 
-/* 2. Contenedor del Login */
 #login-container {
     background: transparent;
-    border: 2px solid #00ff41; /* Borde verde neón */
-    box-shadow: 0 0 15px rgba(0, 255, 65, 0.7); /* Efecto de brillo retro de monitor */
+    border: 2px solid #00ff41;
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.7);
     padding: 30px;
     width: 100%;
-    max-width: 380px; /* Tamaño fijo */
-    animation: flicker 1s infinite alternate; /* Animación sutil de parpadeo */
+    max-width: 400px; /* Tamaño ligeramente más grande para el texto */
+    animation: flicker 1s infinite alternate; 
+    transition: all 0.5s;
 }
 
 @keyframes flicker {
     0% { opacity: 1; }
-    100% { opacity: 0.98; }
+    100% { opacity: 0.99; }
 }
 
-/* 3. Título */
+/* 2. Cabecera y Título del Login */
 #login-container h2 {
     color: #00ff41;
     text-align: center;
+    margin-top: 20px; /* Espacio después de la leyenda */
     margin-bottom: 30px;
     font-size: 1.8em;
-    text-shadow: 0 0 8px #00ff41; /* Brillo en el texto */
+    text-shadow: 0 0 8px #00ff41;
     text-transform: uppercase;
 }
 
-/* 4. Estilos de los Inputs (Usuario y Contraseña) */
-#login-container input[type="text"],
-#login-container input[type="password"] {
+/* 3. Estilos de los Inputs */
+#login-form input[type="text"],
+#login-form input[type="password"] {
     width: 100%;
     padding: 12px;
     margin-bottom: 20px;
     background: transparent;
     border: none;
-    border-bottom: 2px solid #00ff41; /* Subrayado que simula la entrada del terminal */
+    border-bottom: 2px solid #00ff41; 
     color: #00ff41;
     font-size: 1.1em;
     outline: none;
     box-shadow: none;
     transition: border-color 0.2s, box-shadow 0.2s;
-    -webkit-appearance: none;
     font-family: 'Consolas', monospace;
+    -webkit-appearance: none;
 }
 
-/* Foco en el input: simula el cursor activo */
-#login-container input:focus {
+#login-form input:focus {
     border-bottom-color: #33ff77;
     box-shadow: 0 1px 5px #00ff41;
 }
 
-/* Estilo del texto de ayuda (Placeholder) */
-#login-container input::placeholder {
-    color: #008822; /* Texto tenue */
+#login-form input::placeholder {
+    color: #008822;
     opacity: 0.7;
 }
 
-/* 5. Texto de Instrucción (Presiona ENTER) */
 #login-container p {
     color: #00cc33;
     text-align: center;
@@ -80,8 +75,37 @@ body {
     font-size: 0.9em;
 }
 
-/* 6. Formulario: Aseguramos que los inputs se muestren en línea */
-#login-form {
-    display: flex;
-    flex-direction: column;
+
+/* ==================================== */
+/* 4. EFECTO CARRUSEL TIPO LEYENDA */
+/* ==================================== */
+
+.hacker-intro {
+    font-size: 1.2em;
+    text-align: left;
+    height: 30px; /* Altura fija para el texto */
+    overflow: hidden; /* Oculta el texto que se está escribiendo */
+    border-right: 3px solid #00ff41; /* Simula el cursor parpadeante */
+    white-space: nowrap; /* Mantiene el texto en una sola línea */
+    width: 0; /* Ancho inicial 0 */
+    animation: typing 6s steps(40) forwards, 
+               blink-cursor 0.75s step-end infinite;
+}
+
+.typewriter {
+    /* Color de texto para el carrusel (puedes ajustarlo) */
+    color: #ff00ff; /* Magenta/Púrpura Neón para la leyenda */
+    text-shadow: 0 0 5px #ff00ff;
+}
+
+/* 4.1. Animación de Escritura (typing) */
+@keyframes typing {
+    from { width: 0; }
+    to { width: 100%; } /* El ancho crece para revelar el texto */
+}
+
+/* 4.2. Animación del Cursor (blink-cursor) */
+@keyframes blink-cursor {
+    from, to { border-color: transparent }
+    50% { border-color: #00ff41; }
 }
