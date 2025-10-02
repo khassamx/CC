@@ -1,0 +1,157 @@
+/* Chat.css avanzado */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    transition: background 0.5s, color 0.5s;
+}
+
+/* Tema claro / oscuro */
+body.light { 
+    background: #f0f2f5; 
+    color: #333; 
+}
+body.dark { 
+    background: #1e1e1e; 
+    color: #eee; 
+}
+
+#container {
+    display: flex;
+    flex: 1;
+}
+
+/* --- SIDEBAR (Lista de Usuarios) --- */
+#sidebar {
+    width: 250px;
+    padding: 15px;
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+    transition: background 0.5s, border-color 0.5s;
+}
+body.light #sidebar { background: #fff; border-color: #ccc; }
+body.dark #sidebar { background: #2a2a2a; border-color: #444; }
+
+#sidebar h4 { margin-top: 20px; color: #8f94fb; }
+#sidebar a { 
+    display: block; 
+    margin-bottom: 15px; 
+    color: #007bff; 
+    text-decoration: none; 
+    font-weight: bold;
+}
+
+#user-list { list-style: none; padding: 0; }
+#user-list li { 
+    display: flex; 
+    align-items: center; 
+    padding: 8px 0; 
+    border-bottom: 1px dotted #555; 
+    cursor: pointer; 
+    transition: background 0.3s;
+}
+#user-list li:hover { background: rgba(143, 148, 251, 0.1); }
+.user-photo-list { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; margin-right: 10px; }
+
+
+/* --- CHAT PRINCIPAL --- */
+#main-chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#main-chat header {
+    padding: 15px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    transition: background 0.5s, border-color 0.5s;
+}
+body.light #main-chat header { background: #fff; border-color: #ccc; }
+body.dark #main-chat header { background: #2a2a2a; border-color: #444; }
+
+#mensajes {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    transition: background 0.5s;
+}
+
+/* Mensajes */
+.mensaje {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 10px;
+    max-width: 80%;
+    animation: messageFade 0.5s ease-in-out;
+    display: flex;
+}
+body.light .mensaje.global { background: #e6e6e6; }
+body.dark .mensaje.global { background: #333; }
+
+.mensaje.privado {
+    background: #5a2e9b; /* Color de privado */
+    color: white;
+}
+
+.msg-photo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 10px; }
+.msg-header { font-weight: bold; margin-bottom: 5px; }
+.msg-header .rango { font-size: 0.8em; color: #8f94fb; margin-right: 5px; }
+
+
+/* Animación */
+@keyframes messageFade {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+
+/* --- FOOTER (Input y Botones) --- */
+#main-chat footer {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+body.light #main-chat footer { background: #fff; border-color: #ccc; }
+body.dark #main-chat footer { background: #2a2a2a; border-color: #444; }
+
+#mensajeInput {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    margin-right: 10px;
+    transition: border 0.3s, background 0.3s;
+}
+body.dark #mensajeInput { background: #444; color: white; border-color: #555; }
+
+#enviarBtn, #subirMediaBtn {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    background: #8f94fb;
+    color: white;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.1s;
+}
+#enviarBtn:hover, #subirMediaBtn:hover { background: #6b6fea; }
+
+
+/* --- Responsivo para Móviles --- */
+@media screen and (max-width: 768px){
+    #sidebar {
+        width: 100px; /* Más pequeño en móvil */
+        padding: 8px;
+        font-size: 0.8em;
+    }
+    #sidebar h4, #sidebar a { display: none; } /* Ocultar textos largos */
+    #sidebar a#perfil-link { display: block; font-size: 1.5em; text-align: center; } /* Mostrar solo un icono o enlace corto */
+    
+    #user-list li span { display: none; } /* Ocultar nombre, dejar solo foto */
+    #user-list li { justify-content: center; }
+    
+    .mensaje { max-width: 95%; }
+    
+    #main-chat footer { padding: 8px; }
+    #enviarBtn, #subirMediaBtn { padding: 8px 12px; }
+}
