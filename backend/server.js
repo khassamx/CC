@@ -36,10 +36,12 @@ app.post("/login", (req, res) => {
     const { usuario, password } = req.body;
     const usersPath = path.join(__dirname, 'users.json'); // Ruta corregida
     const users = JSON.parse(fs.readFileSync(usersPath, 'utf8'));
-    const userKey = usuario.toLowerCase();
+    
+    // CRÍTICO: Convertir el usuario a minúsculas para coincidir con users.json
+    const userKey = usuario.toLowerCase(); 
 
     if(users[userKey] && users[userKey].password === password){
-        const userProfile = { ...users[userKey] }; 
+        const userProfile = { ...users[userKey], usuario: userKey }; // Guardamos la clave en el perfil
         res.json({ ok: true, user: userProfile });
     } else {
         res.status(401).json({ ok: false, message: "Usuario o contraseña incorrecta." });
@@ -61,7 +63,7 @@ app.post("/upload", upload.single("media"), (req,res) => {
 io.on("connection", socket => {
     let currentUserID;
 
-    // JOIN: Se ejecuta al entrar al chat.html
+    // JOIN: Se ejecuta al entrar al chat.html o index.html
     socket.on("join", (perfil) => {
         currentUserID = perfil.id;
         connectedUsers[perfil.id] = { ...perfil, socketId: socket.id }; 
@@ -87,6 +89,7 @@ io.on("connection", socket => {
         const remitente = connectedUsers[data.id];
         if (!remitente) return;
         
+        // Busca al usuario por el campo 'usuario' (que es la clave en minúsculas)
         const targetUser = Object.values(connectedUsers).find(u => u.usuario === data.destino);
         
         if (targetUser) {
@@ -102,11 +105,12 @@ io.on("connection", socket => {
         }
     });
 
-    // ACTUALIZACIÓN DE PERFIL (Para subir la foto)
+    // ACTUALIZACIÓN DE PERFIL (Para subir la foto o cambiar el nombre)
     socket.on("profile_update", (updatedPerfil) => {
         if (connectedUsers[updatedPerfil.id]) {
             connectedUsers[updatedPerfil.id] = { ...connectedUsers[updatedPerfil.id], ...updatedPerfil };
-            io.emit("update_users", Object.values(connectedUsers));
+            // Actualizamos la sesión para que los demás vean la nueva foto/nombre
+            io.emit("update_users", Object.values(connectedUsers)); 
             io.emit("server_message", { texto: `${updatedPerfil.nombre} actualizó su perfil.`, tipo: 'status' });
         }
     });
