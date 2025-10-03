@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Zona de Descargas</title>
+<link rel="stylesheet" href="descargas.css">
+</head>
+<body>
+  <h1>🌐 Zona de Descargas</h1>
+
+  <div class="descarga-container">
+
+    <button class="btn youtube-btn" onclick="abrirYouTube()">🎬 Abrir YouTube sin anuncios</button>
+
+    <input type="text" id="urlInput" placeholder="Pega el link aquí..." class="url-input">
+
+    <div class="botones">
+      <button class="btn video-btn" onclick="descargarVideo()">📹 Descargar Video</button>
+      <button class="btn audio-btn" onclick="descargarAudio()">🎵 Descargar Audio</button>
+      <button class="btn link-btn" onclick="extraerLink()">🔗 Extraer Link</button>
+    </div>
+
+    <div id="resultado" class="resultado"></div>
+  </div>
+
+  <script>
+    const resultadoDiv = document.getElementById('resultado');
+    const urlInput = document.getElementById('urlInput');
+
+    function abrirYouTube() {
+      // Abre YouTube sin anuncios usando Invidious
+      window.open("https://invidious.io/", "_blank");
+    }
+
+    // Función genérica para enviar la URL al backend
+    async function enviarDescarga(endpoint) {
+        const url = urlInput.value.trim();
+
+        if (!url) {
+            resultadoDiv.innerText = "⚠️ Por favor, pega una URL válida.";
+            return;
+        }
+
+        // Muestra el estado de espera
+        resultadoDiv.innerText = "⏳ Enviando solicitud al servidor...";
+
+        try {
+            // Usa fetch para comunicarse con las nuevas rutas de server.js
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url })
+            });
+
+            const data = await response.json();
+
+            if (data.ok) {
+                if (endpoint === '/extraer/link') {
+                    // Muestra el link directo como un hipervínculo
+                    resultadoDiv.innerHTML = `✅ Link generado: <a href="${data.link}" target="_blank">${data.link}</a>`;
+                } else {
+                    // Muestra el mensaje de inicio de descarga
+                    resultadoDiv.innerText = `✅ Éxito: ${data.message}`;
+                    // Opcional: Puedes mostrar la ruta de descarga simulada
+                    // resultadoDiv.innerText += ` Ruta: ${data.downloadPath}`; 
+                }
+            } else {
+                // Maneja errores 400 o errores de lógica del servidor
+                resultadoDiv.innerText = `❌ Error del servidor: ${data.message}`;
+            }
+
+        } catch (error) {
+            console.error('Error de conexión:', error);
+            resultadoDiv.innerText = "❌ Error de conexión con el backend. ¿Está corriendo el servidor?";
+        }
+    }
+
+    // Funciones específicas para los botones
+    function descargarVideo() {
+      enviarDescarga('/descargar/video');
+    }
+
+    function descargarAudio() {
+      enviarDescarga('/descargar/audio');
+    }
+
+    function extraerLink() {
+      enviarDescarga('/extraer/link');
+    }
+  </script>
+</body>
+</html>
