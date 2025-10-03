@@ -1,0 +1,46 @@
+/* Nuevo Contenedor para la barra de prueba */
+.chat-nav-test {
+    padding: 15px;
+    background-color: #f8f8f8; /* Un fondo gris claro para simular la barra */
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    display: flex; /* Esto los pone en fila */
+    flex-wrap: wrap; /* Permite que salten de línea en móvil */
+    gap: 8px; /* Espacio entre botones */
+    margin-bottom: 30px;
+}
+
+/* Estilo Base para todos los botones en la barra de prueba */
+.chat-nav-test button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: bold;
+    color: white; /* Color de texto base */
+    transition: background-color 0.2s;
+}
+
+/* Estilos Específicos (Copiar/Ajustar los colores de tu style.css aquí) */
+
+#chat-global-btn, #chat-privado-btn, #perfil-btn, #subir-archivo-btn {
+    background-color: #007bff; /* Azul primario */
+}
+#chat-global-btn:hover, #chat-privado-btn:hover, #perfil-btn:hover, #subir-archivo-btn:hover {
+    background-color: #0056b3;
+}
+
+#descargas-btn {
+    background-color: #ff9800; /* Naranja/Ámbar (Especial) */
+}
+#descargas-btn:hover {
+    background-color: #f57c00;
+}
+
+#tema-btn {
+    background-color: #6c757d; /* Gris (Utilidad/Alternativo) */
+}
+#tema-btn:hover {
+    background-color: #5a6268;
+}
