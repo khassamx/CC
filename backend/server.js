@@ -7,14 +7,14 @@ const { Server } = require("socket.io");
 const multer = require("multer");
 const path = require("path");
 
-// --- RUTA CORREGIDA DEFINITIVA ---
-// CRÍTICO: Sube un nivel (..) y entra en la carpeta 'src' para encontrar 'utils.js'
+// --- RUTA CRÍTICA CORREGIDA ---
 const { getRango } = require("../src/utils"); 
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-const PORT = 3000; // Asumo que usas el puerto 3000, aunque el navegador muestre 8080.
+// El puerto 3000 es el estándar y el que usa Serveo. Si necesitas el 8080, cámbialo aquí.
+const PORT = 3000; 
 
 // --- CONFIGURACIÓN BASE ---
 const rootDir = path.join(__dirname, '..'); // Directorio raíz (CC/)
@@ -31,9 +31,14 @@ const usersDataPath = path.join(__dirname, 'users.json');
 
 function readUsers() {
     try {
+        if (!fs.existsSync(usersDataPath)) {
+            console.warn("users.json no encontrado. Creando archivo vacío.");
+            fs.writeFileSync(usersDataPath, JSON.stringify({}), 'utf8');
+            return {};
+        }
         return JSON.parse(fs.readFileSync(usersDataPath, 'utf8'));
     } catch (e) {
-        console.error("Error leyendo users.json. Creando archivo vacío.", e.message);
+        console.error("Error leyendo users.json. Devolviendo objeto vacío.", e.message);
         return {};
     }
 }
@@ -56,30 +61,30 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// ======================================================
+//             RUTAS DE AUTENTICACIÓN Y CHAT
+// ======================================================
+
 // --- RUTA LOGIN CON CÁLCULO DE RANGO ---
 app.post("/login", (req, res) => {
     const { usuario, password } = req.body;
     const users = readUsers();
     
-    // Convertir a minúsculas para buscar en la base de datos
     const userKey = usuario.toLowerCase(); 
 
     if(users[userKey] && users[userKey].password === password){
         let userProfile = users[userKey];
 
-        // Inicializar contador de mensajes si no existe
         if (typeof userProfile.mensajes !== 'number') {
             userProfile.mensajes = 0;
             writeUsers(users); 
         }
         
-        // Calcular y agregar la información del rango
         const rangoInfo = getRango(userProfile.mensajes);
         userProfile.rango = rangoInfo.nombre; 
         userProfile.rangoCss = rangoInfo.cssClass; 
         userProfile.nivel = rangoInfo.nivel; 
 
-        // Se envía el perfil completo, incluyendo el rango y la clase CSS
         res.json({ ok: true, user: { ...userProfile, usuario: userKey } });
     } else {
         res.status(401).json({ ok: false, message: "Usuario o contraseña incorrecta." });
@@ -96,7 +101,77 @@ app.post("/upload", upload.single("media"), (req,res) => {
     }
 });
 
-// --- SOCKET.IO (Lógica del Chat con Rangos) ---
+// ======================================================
+//             RUTAS DE DESCARGA V2.0
+// ======================================================
+
+// Ruta principal para servir la página de descargas
+app.get("/descargas", (req, res) => {
+    res.sendFile(path.join(rootDir, 'public', 'descargas.html'));
+});
+
+// 1. RUTA para descargar Video con opciones (Simulación de Progreso)
+app.post("/descargar/video", (req, res) => {
+    const { url, calidad, formato } = req.body;
+    console.log(`[DESCARGA VIDEO] Solicitud recibida: URL=${url}, Calidad=${calidad}, Formato=${formato}`);
+    
+    if (!url) {
+        return res.status(400).json({ ok: false, message: "URL no proporcionada." });
+    }
+    
+    // Simulación del Proceso de Descarga (¡Aquí iría la lógica real!)
+    
+    // 1. Notificar al frontend que la tarea fue aceptada
+    res.json({ 
+        ok: true, 
+        message: `Iniciando procesamiento de video (${calidad}, ${formato}).`,
+        taskId: `video-${Date.now()}` // ID de tarea simulada para tracking
+    });
+    
+    // 2. Simular el progreso usando Socket.IO (sería el paso real)
+});
+
+// 2. RUTA para descargar Audio (Simulación Simple)
+app.post("/descargar/audio", (req, res) => {
+    const { url } = req.body;
+    console.log(`[DESCARGA AUDIO] Solicitud recibida para: ${url}`);
+    
+    if (!url) {
+        return res.status(400).json({ ok: false, message: "URL no proporcionada." });
+    }
+    
+    // Simulación de proceso exitoso
+    setTimeout(() => {
+        res.json({ 
+            ok: true, 
+            message: "Descarga de audio solicitada y aceptada por el servidor.",
+        });
+    }, 1500);
+});
+
+// 3. RUTA para extraer link directo (Simulación)
+app.post("/extraer/link", (req, res) => {
+    const { url } = req.body;
+    console.log(`[LINK DIRECTO] Solicitud de link directo recibida para: ${url}`);
+    
+    if (!url) {
+        return res.status(400).json({ ok: false, message: "URL no proporcionada." });
+    }
+    
+    // Simulación de link directo
+    const directLink = `https://generador-link.com/${btoa(url)}`;
+    
+    res.json({
+        ok: true,
+        message: "Link directo generado con éxito.",
+        link: directLink
+    });
+});
+
+// ======================================================
+//               SOCKET.IO (Lógica del Chat)
+// ======================================================
+
 io.on("connection", socket => {
     let currentUserID;
 
@@ -104,7 +179,6 @@ io.on("connection", socket => {
     socket.on("join", (perfil) => {
         currentUserID = perfil.id;
         
-        // Asegura que el perfil tenga los campos de rango, incluso si no los trae del login
         if (!perfil.rango) {
              const users = readUsers();
              const userKey = perfil.usuario.toLowerCase();
@@ -125,32 +199,31 @@ io.on("connection", socket => {
     socket.on("mensajeGlobal", (data) => {
         // 1. Aumentar el contador y actualizar el JSON
         const users = readUsers();
-        const userKey = connectedUsers[data.id].usuario; 
+        const remitente = connectedUsers[data.id];
+        if (!remitente) return;
+        
+        const userKey = remitente.usuario; 
         
         if (users[userKey]) {
             users[userKey].mensajes = (users[userKey].mensajes || 0) + 1;
             writeUsers(users);
             
-            // 2. Recalcular el rango y actualizar el objeto conectado
+            // 2. Recalcular el rango
             const rangoInfo = getRango(users[userKey].mensajes);
-            connectedUsers[data.id].rango = rangoInfo.nombre;
-            connectedUsers[data.id].rangoCss = rangoInfo.cssClass; 
-            connectedUsers[data.id].nivel = rangoInfo.nivel;
+            remitente.rango = rangoInfo.nombre;
+            remitente.rangoCss = rangoInfo.cssClass; 
+            remitente.nivel = rangoInfo.nivel;
         }
-
-        const remitente = connectedUsers[data.id];
-        if (!remitente) return;
         
         // 3. Emitir mensaje con la información del rango y la clase CSS
         io.emit("mensajeGlobal", { 
             ...data, 
             nombre: remitente.nombre, 
             rango: remitente.rango,
-            rangoCss: remitente.rangoCss, // Envía la clase CSS para el frontend
+            rangoCss: remitente.rangoCss, 
             foto: remitente.foto 
         });
 
-        // Opcional: Re-emitir la lista de usuarios si el rango cambió
         io.emit("update_users", Object.values(connectedUsers));
     });
 
@@ -162,7 +235,6 @@ io.on("connection", socket => {
         const targetUser = Object.values(connectedUsers).find(u => u.usuario === data.destino);
         
         if (targetUser) {
-            // Enviar al destinatario
             io.to(targetUser.socketId).emit("mensajePrivado", { 
                 ...data, 
                 nombre: remitente.nombre, 
@@ -171,7 +243,6 @@ io.on("connection", socket => {
                 rangoCss: remitente.rangoCss,
                 isSender: false 
             });
-            // Enviar al remitente como confirmación
             io.to(remitente.socketId).emit("mensajePrivado", { 
                 ...data, 
                 nombre: remitente.nombre, 
@@ -191,14 +262,12 @@ io.on("connection", socket => {
     // ACTUALIZACIÓN DE PERFIL
     socket.on("profile_update", (updatedPerfil) => {
         if (connectedUsers[updatedPerfil.id]) {
-            // Actualiza los datos conectados
             connectedUsers[updatedPerfil.id] = { 
                 ...connectedUsers[updatedPerfil.id], 
                 nombre: updatedPerfil.nombre, 
                 foto: updatedPerfil.foto 
             };
             
-            // Re-escribe el JSON de usuarios con los nuevos datos
             const users = readUsers();
             const userKey = connectedUsers[updatedPerfil.id].usuario;
             if (users[userKey]) {
@@ -211,7 +280,6 @@ io.on("connection", socket => {
             io.emit("server_message", { texto: `${updatedPerfil.nombre} actualizó su perfil.`, tipo: 'status' });
         }
     });
-
 
     // DESCONEXIÓN
     socket.on("disconnect", () => {
